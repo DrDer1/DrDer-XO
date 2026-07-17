@@ -1,4 +1,3 @@
-```javascript
 function getAIMove(board, level) {
   const emptyCells = board.reduce((acc, val, idx) => {
     if (val === '') acc.push(idx);
