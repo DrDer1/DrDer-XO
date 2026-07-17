@@ -7,9 +7,12 @@
   <meta name="description" content="DrDer X O - لعبة احترافية متعددة الأنماط">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DrDer XO">
   <link rel="manifest" href="./manifest.json">
-  <link rel="icon" href="./icons/192.png" sizes="192x192">
+  <link rel="icon" href="./icons/192.png" sizes="192x192" type="image/png">
+  <link rel="icon" href="./icons/512.png" sizes="512x512" type="image/png">
   <link rel="apple-touch-icon" href="./icons/192.png">
+  <link rel="apple-touch-icon" href="./icons/512.png" sizes="512x512">
   <title>DrDer X O</title>
   <link rel="stylesheet" href="./style.css">
   <style>
@@ -483,6 +486,19 @@
     </div>
   </div>
 
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(registration => {
+            console.log('Service Worker registered with scope:', registration.scope);
+          })
+          .catch(error => {
+            console.log('Service Worker registration failed:', error);
+          });
+      });
+    }
+  </script>
   <script src="./ai.js"></script>
   <script src="./online.js"></script>
   <script src="./app.js"></script>
