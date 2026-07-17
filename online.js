@@ -8,7 +8,6 @@ class OnlineGameManager {
     this.isOwner = false;
     this.myRole = 'spectator';
     this.unsubscribe = null;
-    this.disconnectTimer = null;
     this.initFirebase();
   }
 
@@ -62,7 +61,7 @@ class OnlineGameManager {
     document.getElementById('createRoomBtn').onclick = () => this.createRoom();
     document.getElementById('joinRoomBtn').onclick = () => {
       const roomInput = document.getElementById('roomCodeInput');
-      if (roomInput.style.display === 'none') {
+      if (roomInput.style.display === 'none' || roomInput.style.display === '') {
         roomInput.style.display = 'block';
         roomInput.focus();
       } else {
@@ -165,8 +164,6 @@ class OnlineGameManager {
       this.updateUI(data);
       this.checkDisconnection(data);
     });
-
-    this.roomRef.child('lastActivity').onDisconnect().remove();
   }
 
   updateUI(data) {
@@ -339,9 +336,10 @@ class OnlineGameManager {
 
     if (isPlaying && xId && oId) {
       const otherId = this.playerId === xId ? oId : (this.playerId === oId ? xId : null);
-      if (otherId && !data.spectators?.[otherId]) {
-        const playerExists = (data.players.X.id === otherId) || (data.players.O.id === otherId);
-        if (!playerExists && this.myRole !== 'spectator') {
+      if (otherId) {
+        const otherExists = (data.players.X.id === otherId) || (data.players.O.id === otherId);
+        const otherIsSpectator = data.spectators && data.spectators[otherId];
+        if (!otherExists && !otherIsSpectator && this.myRole !== 'spectator') {
           document.getElementById('disconnectionMessage').style.display = 'flex';
           window.app.setGameActive(false);
         }
@@ -434,15 +432,3 @@ class OnlineGameManager {
 }
 
 window.onlineManager = new OnlineGameManager();
-
-document.getElementById('leaveRoomBtn').addEventListener('click', () => {
-  if (window.onlineManager) {
-    window.onlineManager.leaveRoom();
-  }
-  window.app.goToMainMenu();
-});
-
-document.getElementById('disconnectionBackBtn').addEventListener('click', () => {
-  document.getElementById('disconnectionMessage').style.display = 'none';
-  window.app.goToMainMenu();
-});
