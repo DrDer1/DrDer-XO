@@ -82,13 +82,11 @@ class OnlineGameManager {
     this.isOwner = true;
     this.myRole = 'spectator';
 
-    const firstTurn = Math.random() < 0.5 ? 'X' : 'O';
-
     const roomData = {
       ownerId: this.playerId,
       createdAt: firebase.database.ServerValue.TIMESTAMP,
       lastActivity: firebase.database.ServerValue.TIMESTAMP,
-      status: 'playing',
+      status: 'waiting',
       players: {
         X: { id: '', name: '' },
         O: { id: '', name: '' }
@@ -97,7 +95,7 @@ class OnlineGameManager {
         [this.playerId]: { id: this.playerId, name: this.playerName }
       },
       board: ['', '', '', '', '', '', '', '', ''],
-      turn: firstTurn,
+      turn: 'X',
       winner: null,
       viewersCount: 1
     };
@@ -138,39 +136,7 @@ class OnlineGameManager {
       this.myRole = 'spectator';
 
       const updates = {};
-      
-      if (!room.players.X.id && !room.players.O.id) {
-        const firstTurn = Math.random() < 0.5 ? 'X' : 'O';
-        if (firstTurn === 'X') {
-          updates['players/X'] = { id: this.playerId, name: this.playerName };
-          this.myRole = 'X';
-        } else {
-          updates['players/O'] = { id: this.playerId, name: this.playerName };
-          this.myRole = 'O';
-        }
-        updates['turn'] = firstTurn;
-        updates['status'] = 'playing';
-        updates['board'] = ['', '', '', '', '', '', '', '', ''];
-        updates['winner'] = null;
-      } else if (!room.players.X.id && room.players.O.id) {
-        updates['players/X'] = { id: this.playerId, name: this.playerName };
-        this.myRole = 'X';
-        updates['status'] = 'playing';
-        updates['board'] = ['', '', '', '', '', '', '', '', ''];
-        updates['winner'] = null;
-        if (!room.turn) updates['turn'] = Math.random() < 0.5 ? 'X' : 'O';
-      } else if (room.players.X.id && !room.players.O.id) {
-        updates['players/O'] = { id: this.playerId, name: this.playerName };
-        this.myRole = 'O';
-        updates['status'] = 'playing';
-        updates['board'] = ['', '', '', '', '', '', '', '', ''];
-        updates['winner'] = null;
-        if (!room.turn) updates['turn'] = Math.random() < 0.5 ? 'X' : 'O';
-      } else {
-        updates[`spectators/${this.playerId}`] = { id: this.playerId, name: this.playerName };
-        this.myRole = 'spectator';
-      }
-      
+      updates[`spectators/${this.playerId}`] = { id: this.playerId, name: this.playerName };
       updates[`viewersCount`] = (room.viewersCount || 0) + 1;
       updates[`lastActivity`] = firebase.database.ServerValue.TIMESTAMP;
 
@@ -218,7 +184,8 @@ class OnlineGameManager {
     const winners = data.winner && data.winner !== 'draw' ? window.app.checkWinner(board)?.cells || [] : [];
     window.app.setWinningCells(winners);
     
-    window.app.renderBoard(window.app.getOnlineBoard(), board, winners);
+    const onlineBoard = window.app.getOnlineBoard();
+    window.app.renderBoard(onlineBoard, board, winners);
 
     window.app.setCurrentPlayer(data.turn || 'X');
     
@@ -318,6 +285,7 @@ class OnlineGameManager {
                           (data.players?.O?.id === targetPlayerId ? data.players.O : null);
         if (targetData) {
           updates[`players/${role}`] = { id: targetPlayerId, name: targetData.name };
+          updates[`spectators/${targetPlayerId}`] = null;
         }
       }
 
