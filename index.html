@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="DrDer X O - لعبة احترافية متعددة الأنماط">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icons/192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="./icons/192.png">
+  <title>DrDer X O</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="mainMenuScreen" class="screen active">
+      <h1 class="game-title">DrDer X O</h1>
+      <div class="menu-buttons">
+        <button class="btn" data-screen="aiGameScreen" data-action="startAI">لعب ضد الذكاء الاصطناعي</button>
+        <button class="btn" data-screen="localGameScreen" data-action="startLocal">لاعبان على نفس الجهاز</button>
+        <button class="btn" data-screen="onlineLobbyScreen" data-action="showOnlineLobby">اللعب عبر الإنترنت</button>
+        <button class="btn" data-screen="settingsScreen" data-action="showSettings">الإعدادات</button>
+      </div>
+    </div>
+
+    <div id="aiGameScreen" class="screen">
+      <div class="game-header">
+        <div class="player-info player-x" id="aiPlayerXName">X</div>
+        <div class="player-info player-o" id="aiPlayerOName">O</div>
+      </div>
+      <div class="game-board" id="aiGameBoard"></div>
+      <button class="btn back-btn" data-screen="mainMenuScreen">القائمة الرئيسية</button>
+    </div>
+
+    <div id="localGameScreen" class="screen">
+      <div class="game-header">
+        <div class="player-info player-x" id="localPlayerXName">X</div>
+        <div class="player-info player-o" id="localPlayerOName">O</div>
+      </div>
+      <div class="game-board" id="localGameBoard"></div>
+      <button class="btn back-btn" data-screen="mainMenuScreen">القائمة الرئيسية</button>
+    </div>
+
+    <div id="onlineLobbyScreen" class="screen">
+      <div class="lobby-container">
+        <input type="text" id="playerNameInput" class="text-input" placeholder="أدخل اسمك" maxlength="20" autocomplete="off">
+        <div class="lobby-buttons">
+          <button class="btn" id="createRoomBtn">إنشاء غرفة</button>
+          <button class="btn" id="joinRoomBtn">الانضمام إلى غرفة</button>
+        </div>
+        <input type="text" id="roomCodeInput" class="text-input" placeholder="كود الغرفة" maxlength="10" autocomplete="off" style="display:none;">
+        <button class="btn back-btn" data-screen="mainMenuScreen">القائمة الرئيسية</button>
+      </div>
+    </div>
+
+    <div id="onlineRoomScreen" class="screen">
+      <div class="room-info">
+        <span id="roomCodeDisplay">كود: ---</span>
+        <span class="viewer-badge" id="viewerCountDisplay">👁 0</span>
+      </div>
+      <div class="game-header">
+        <div class="player-info player-x" id="onlinePlayerXName">X</div>
+        <div class="player-info player-o" id="onlinePlayerOName">O</div>
+      </div>
+      <div class="game-board" id="onlineGameBoard"></div>
+      <div id="adminPanel" class="admin-panel" style="display:none;"></div>
+      <div id="disconnectionMessage" class="disconnection-message" style="display:none;">
+        <p>انقطع اتصال اللاعب الآخر</p>
+        <button class="btn" id="disconnectionBackBtn">العودة للقائمة الرئيسية</button>
+      </div>
+      <button class="btn back-btn" id="leaveRoomBtn">مغادرة الغرفة</button>
+    </div>
+
+    <div id="settingsScreen" class="screen">
+      <div class="settings-container">
+        <div class="setting-item">
+          <label for="aiLevelSelect">مستوى الذكاء الاصطناعي</label>
+          <select id="aiLevelSelect" class="text-input">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+            <option value="impossible" selected>Impossible</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn back-btn" data-screen="mainMenuScreen">القائمة الرئيسية</button>
+    </div>
+  </div>
+
+  <div id="modalOverlay" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+      <h2 id="modalTitle"></h2>
+      <div class="modal-buttons">
+        <button class="btn primary-btn" id="modalPlayAgainBtn">لعب مرة أخرى</button>
+        <button class="btn" id="modalMainMenuBtn">القائمة الرئيسية</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./ai.js"></script>
+  <script src="./online.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
