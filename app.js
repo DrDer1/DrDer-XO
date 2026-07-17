@@ -74,8 +74,59 @@ document.addEventListener('DOMContentLoaded', () => {
     winningCells = [];
   }
 
+  function getWinLineStyle(winningCellsArray) {
+    if (!winningCellsArray || winningCellsArray.length !== 3) return null;
+    const [a, b, c] = winningCellsArray;
+    
+    const rowA = Math.floor(a / 3);
+    const colA = a % 3;
+    const rowC = Math.floor(c / 3);
+    const colC = c % 3;
+    
+    const style = {
+      position: 'absolute',
+      backgroundColor: 'rgba(74, 222, 128, 0.8)',
+      borderRadius: '4px',
+      zIndex: '10',
+      pointerEvents: 'none',
+      transformOrigin: 'center center'
+    };
+    
+    if (rowA === rowC) {
+      style.width = '90%';
+      style.height = '4px';
+      style.top = `${(rowA * 33.333) + 16.666}%`;
+      style.left = '5%';
+    } else if (colA === colC) {
+      style.width = '4px';
+      style.height = '90%';
+      style.left = `${(colA * 33.333) + 16.666}%`;
+      style.top = '5%';
+    } else if (a === 0 && c === 8) {
+      style.width = '4px';
+      style.height = '120%';
+      style.top = '-10%';
+      style.left = '50%';
+      style.transform = 'rotate(45deg)';
+    } else if (a === 2 && c === 6) {
+      style.width = '4px';
+      style.height = '120%';
+      style.top = '-10%';
+      style.left = '50%';
+      style.transform = 'rotate(-45deg)';
+    }
+    
+    return style;
+  }
+
   function renderBoard(boardElement, state, winners = []) {
     if (!boardElement) return;
+    
+    const existingLine = boardElement.querySelector('.win-line');
+    if (existingLine) {
+      existingLine.remove();
+    }
+    
     boardElement.innerHTML = '';
     state.forEach((value, index) => {
       const cell = document.createElement('div');
@@ -87,6 +138,17 @@ document.addEventListener('DOMContentLoaded', () => {
       cell.dataset.index = index;
       boardElement.appendChild(cell);
     });
+    
+    if (winners && winners.length === 3) {
+      const lineStyle = getWinLineStyle(winners);
+      if (lineStyle) {
+        const line = document.createElement('div');
+        line.className = 'win-line';
+        Object.assign(line.style, lineStyle);
+        boardElement.style.position = 'relative';
+        boardElement.appendChild(line);
+      }
+    }
   }
 
   function updatePlayerDisplays() {
@@ -151,7 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
       winningCells = result.cells;
       const boardEl = getCurrentBoardElement();
       renderBoard(boardEl, boardState, winningCells);
-      showModal(`${translations.winner}: ${result.winner}`, restartCurrentGame, goToMainMenu);
+      setTimeout(() => {
+        showModal(`${translations.winner}: ${result.winner}`, restartCurrentGame, goToMainMenu);
+      }, 300);
     }
   }
 
@@ -310,6 +374,10 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     getCurrentScreen: () => currentScreen,
     handleGameEnd,
-    getOnlineBoard: () => onlineBoard
+    getOnlineBoard: () => onlineBoard,
+    checkWinner,
+    getWinLineStyle,
+    setWinningCells: (cells) => { winningCells = cells; },
+    getWinningCells: () => winningCells
   };
 });
