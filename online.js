@@ -152,6 +152,7 @@ class OnlineGameManager {
   attachListeners() {
     if (this.unsubscribe) {
       this.unsubscribe();
+      this.unsubscribe = null;
     }
 
     this.unsubscribe = this.roomRef.on('value', (snapshot) => {
@@ -194,10 +195,15 @@ class OnlineGameManager {
     if (data.players?.O?.id === this.playerId) this.myRole = 'O';
     if (data.spectators && data.spectators[this.playerId]) this.myRole = 'spectator';
 
-    const isActive = data.status === 'playing' && !data.winner;
+    const hasBothPlayers = data.players?.X?.id && data.players?.O?.id;
+    const isPlaying = data.status === 'playing';
+    const hasWinner = data.winner !== null && data.winner !== undefined && data.winner !== '';
+    const isActive = hasBothPlayers && isPlaying && !hasWinner;
+    
     window.app.setGameActive(isActive);
 
     if (data.winner) {
+      window.app.setGameActive(false);
       if (data.winner === 'draw') {
         window.app.showModal('تعادل', () => this.resetOnlineGame(), () => window.app.goToMainMenu());
       } else {
@@ -298,6 +304,20 @@ class OnlineGameManager {
         }
       }
 
+      const hasBothPlayers = (role === 'X' || role === 'O') ? 
+        ((role === 'X' && data.players?.O?.id) || (role === 'O' && data.players?.X?.id) || 
+         (updates['players/X'] && updates['players/X'].id && data.players?.O?.id) ||
+         (updates['players/O'] && updates['players/O'].id && data.players?.X?.id) ||
+         (role === 'X' && data.players?.O?.id) || (role === 'O' && data.players?.X?.id)) : false;
+
+      if (hasBothPlayers && data.status === 'waiting') {
+        const firstTurn = Math.random() < 0.5 ? 'X' : 'O';
+        updates.status = 'playing';
+        updates.turn = firstTurn;
+        updates.board = ['', '', '', '', '', '', '', '', ''];
+        updates.winner = null;
+      }
+
       updates.lastActivity = firebase.database.ServerValue.TIMESTAMP;
       this.roomRef.update(updates);
     });
@@ -328,11 +348,21 @@ class OnlineGameManager {
     this.isOwner = false;
     this.myRole = 'spectator';
     window.app.setGameMode(null);
+    window.app.setGameActive(false);
   }
 
   handleRoomClosed() {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+      this.unsubscribe = null;
+    }
+    this.roomRef = null;
+    this.currentRoomId = null;
+    this.isOwner = false;
+    this.myRole = 'spectator';
+    window.app.setGameMode(null);
+    window.app.setGameActive(false);
     alert('تم إغلاق الغرفة');
-    this.leaveRoom();
     window.app.goToMainMenu();
   }
 
@@ -439,3 +469,26 @@ class OnlineGameManager {
 }
 
 window.onlineManager = new OnlineGameManager();
+
+document.addEventListener('DOMContentLoaded', () => {
+  const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+  if (leaveRoomBtn) {
+    leaveRoomBtn.addEventListener('click', () => {
+      if (window.onlineManager) {
+        window.onlineManager.leaveRoom();
+      }
+      window.app.goToMainMenu();
+    });
+  }
+
+  const disconnectionBackBtn = document.getElementById('disconnectionBackBtn');
+  if (disconnectionBackBtn) {
+    disconnectionBackBtn.addEventListener('click', () => {
+      const disconnectionMessage = document.getElementById('disconnectionMessage');
+      if (disconnectionMessage) {
+        disconnectionMessage.style.display = 'none';
+      }
+      window.app.goToMainMenu();
+    });
+  }
+});
