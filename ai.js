@@ -1,44 +1,4 @@
 function getAIMove(board, level) {
-  const emptyCells = board.reduce((acc, val, idx) => {
-    if (val === '') acc.push(idx);
-    return acc;
-  }, []);
-
-  if (emptyCells.length === 0) return -1;
-
-  switch (level) {
-    case 'easy':
-      return easyMove(emptyCells);
-    case 'medium':
-      return mediumMove(board, emptyCells);
-    case 'hard':
-      return hardMove(board, emptyCells);
-    case 'impossible':
-      return impossibleMove(board);
-    default:
-      return impossibleMove(board);
-  }
-}
-
-function easyMove(emptyCells) {
-  return emptyCells[Math.floor(Math.random() * emptyCells.length)];
-}
-
-function mediumMove(board, emptyCells) {
-  if (Math.random() < 0.5) {
-    return minimaxMove(board, 'O');
-  }
-  return easyMove(emptyCells);
-}
-
-function hardMove(board, emptyCells) {
-  if (Math.random() < 0.8) {
-    return minimaxMove(board, 'O');
-  }
-  return easyMove(emptyCells);
-}
-
-function impossibleMove(board) {
   return minimaxMove(board, 'O');
 }
 
@@ -58,7 +18,6 @@ function minimaxMove(board, aiPlayer) {
       }
     }
   }
-
   return bestMove;
 }
 
@@ -105,9 +64,7 @@ function checkStaticWinner(board) {
   ];
   for (const line of lines) {
     const [a, b, c] = line;
-    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-      return board[a];
-    }
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
   }
   return null;
 }
