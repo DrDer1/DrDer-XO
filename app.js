@@ -1,4 +1,3 @@
-```javascript
 document.addEventListener('DOMContentLoaded', () => {
   const translations = {
     aiGame: 'لعب ضد الذكاء الاصطناعي',
