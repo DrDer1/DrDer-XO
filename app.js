@@ -1,43 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const translations = {
-    aiGame: 'لعب ضد الذكاء الاصطناعي',
-    localGame: 'لاعبان على نفس الجهاز',
-    onlinePlay: 'اللعب عبر الإنترنت',
-    settings: 'الإعدادات',
-    backToMenu: 'القائمة الرئيسية',
-    playAgain: 'لعب مرة أخرى',
-    winner: 'الفائز',
-    draw: 'تعادل',
-    playerX: 'X',
-    playerO: 'O',
-    you: 'أنت',
-    ai: 'AI',
-    enterName: 'أدخل اسمك',
-    roomCode: 'كود الغرفة',
-    createRoom: 'إنشاء غرفة',
-    joinRoom: 'الانضمام إلى غرفة',
-    leaveRoom: 'مغادرة الغرفة',
-    viewers: '👁',
-    disconnected: 'انقطع اتصال اللاعب الآخر',
-    aiLevel: 'مستوى الذكاء الاصطناعي',
-    easy: 'Easy',
-    medium: 'Medium',
-    hard: 'Hard',
-    impossible: 'Impossible',
-    newGame: 'مباراة جديدة',
-    closeRoom: 'إغلاق الغرفة',
-    spectator: 'مشاهد',
-    setX: 'X',
-    setO: 'O'
-  };
-
   const screens = {
     mainMenu: document.getElementById('mainMenuScreen'),
-    aiGame: document.getElementById('aiGameScreen'),
-    localGame: document.getElementById('localGameScreen'),
-    onlineLobby: document.getElementById('onlineLobbyScreen'),
-    onlineRoom: document.getElementById('onlineRoomScreen'),
-    settings: document.getElementById('settingsScreen')
+    game: document.getElementById('gameScreen')
   };
 
   const modalOverlay = document.getElementById('modalOverlay');
@@ -45,26 +9,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalPlayAgainBtn = document.getElementById('modalPlayAgainBtn');
   const modalMainMenuBtn = document.getElementById('modalMainMenuBtn');
 
-  let currentScreen = 'mainMenu';
+  const gameBoard = document.getElementById('gameBoard');
+  const playerXNameEl = document.getElementById('playerXName');
+  const playerONameEl = document.getElementById('playerOName');
+
   let gameMode = null;
   let boardState = ['', '', '', '', '', '', '', '', ''];
   let currentPlayer = 'X';
   let gameActive = false;
   let aiEnabled = false;
-  let aiLevel = 'impossible';
-  let playerXName = translations.playerX;
-  let playerOName = translations.playerO;
   let winningCells = [];
 
-  const aiBoard = document.getElementById('aiGameBoard');
-  const localBoard = document.getElementById('localGameBoard');
-  const onlineBoard = document.getElementById('onlineGameBoard');
-
   function showScreen(screenId) {
-    if (!screens[screenId]) return;
     Object.values(screens).forEach(s => s.classList.remove('active'));
-    screens[screenId].classList.add('active');
-    currentScreen = screenId;
+    if (screens[screenId]) screens[screenId].classList.add('active');
   }
 
   function resetGameState() {
@@ -74,56 +32,38 @@ document.addEventListener('DOMContentLoaded', () => {
     winningCells = [];
   }
 
-  function getWinLineStyle(winningCellsArray, boardElement) {
-    if (!winningCellsArray || winningCellsArray.length !== 3 || !boardElement) return null;
+  function getWinLineStyle(cells) {
+    if (!cells || cells.length !== 3) return null;
+    const boardRect = gameBoard.getBoundingClientRect();
+    const cellElements = gameBoard.querySelectorAll('.cell');
+    if (cellElements.length !== 9) return null;
     
-    const cells = boardElement.querySelectorAll('.cell');
-    if (cells.length !== 9) return null;
+    const first = cellElements[cells[0]].getBoundingClientRect();
+    const last = cellElements[cells[2]].getBoundingClientRect();
     
-    const firstCell = cells[winningCellsArray[0]];
-    const lastCell = cells[winningCellsArray[2]];
+    const x1 = first.left + first.width / 2 - boardRect.left;
+    const y1 = first.top + first.height / 2 - boardRect.top;
+    const x2 = last.left + last.width / 2 - boardRect.left;
+    const y2 = last.top + last.height / 2 - boardRect.top;
     
-    if (!firstCell || !lastCell) return null;
-    
-    const boardRect = boardElement.getBoundingClientRect();
-    const firstRect = firstCell.getBoundingClientRect();
-    const lastRect = lastCell.getBoundingClientRect();
-    
-    const startX = firstRect.left + firstRect.width / 2 - boardRect.left;
-    const startY = firstRect.top + firstRect.height / 2 - boardRect.top;
-    const endX = lastRect.left + lastRect.width / 2 - boardRect.left;
-    const endY = lastRect.top + lastRect.height / 2 - boardRect.top;
-    
-    const deltaX = endX - startX;
-    const deltaY = endY - startY;
-    const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+    const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+    const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
     
     return {
       width: `${length}px`,
       height: '4px',
-      backgroundColor: 'rgba(74, 222, 128, 0.9)',
-      position: 'absolute',
-      top: `${startY}px`,
-      left: `${startX}px`,
+      top: `${y1}px`,
+      left: `${x1}px`,
       transform: `rotate(${angle}deg)`,
-      transformOrigin: '0 50%',
-      borderRadius: '4px',
-      zIndex: '10',
-      pointerEvents: 'none',
-      boxShadow: '0 0 8px rgba(74, 222, 128, 0.5)'
+      transformOrigin: '0 50%'
     };
   }
 
-  function renderBoard(boardElement, state, winners = []) {
-    if (!boardElement) return;
+  function renderBoard(state, winners = []) {
+    const existingLine = gameBoard.querySelector('.win-line');
+    if (existingLine) existingLine.remove();
     
-    const existingLine = boardElement.querySelector('.win-line');
-    if (existingLine) {
-      existingLine.remove();
-    }
-    
-    boardElement.innerHTML = '';
+    gameBoard.innerHTML = '';
     state.forEach((value, index) => {
       const cell = document.createElement('div');
       cell.className = 'cell';
@@ -132,37 +72,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (winners.includes(index)) cell.classList.add('winner-cell');
       cell.textContent = value;
       cell.dataset.index = index;
-      boardElement.appendChild(cell);
+      gameBoard.appendChild(cell);
     });
     
-    if (winners && winners.length === 3) {
+    if (winners.length === 3) {
       requestAnimationFrame(() => {
-        const lineStyle = getWinLineStyle(winners, boardElement);
-        if (lineStyle) {
+        const style = getWinLineStyle(winners);
+        if (style) {
           const line = document.createElement('div');
           line.className = 'win-line';
-          Object.assign(line.style, lineStyle);
-          boardElement.style.position = 'relative';
-          boardElement.appendChild(line);
+          Object.assign(line.style, style);
+          gameBoard.appendChild(line);
         }
       });
     }
-  }
-
-  function updatePlayerDisplays() {
-    const aiX = document.getElementById('aiPlayerXName');
-    const aiO = document.getElementById('aiPlayerOName');
-    const localX = document.getElementById('localPlayerXName');
-    const localO = document.getElementById('localPlayerOName');
-    const onlineX = document.getElementById('onlinePlayerXName');
-    const onlineO = document.getElementById('onlinePlayerOName');
-    
-    if (aiX) aiX.textContent = playerXName;
-    if (aiO) aiO.textContent = playerOName;
-    if (localX) localX.textContent = playerXName;
-    if (localO) localO.textContent = playerOName;
-    if (onlineX) onlineX.textContent = playerXName;
-    if (onlineO) onlineO.textContent = playerOName;
   }
 
   function checkWinner(state) {
@@ -177,117 +100,65 @@ document.addEventListener('DOMContentLoaded', () => {
         return { winner: state[a], cells: line };
       }
     }
-    if (state.every(cell => cell !== '')) {
-      return { winner: 'draw', cells: [] };
-    }
+    if (state.every(cell => cell !== '')) return { winner: 'draw', cells: [] };
     return null;
   }
 
   function showModal(title, onPlayAgain, onMainMenu) {
-    if (!modalOverlay || !modalTitle) return;
     modalTitle.textContent = title;
     modalOverlay.style.display = 'flex';
-    
-    modalPlayAgainBtn.onclick = () => {
-      modalOverlay.style.display = 'none';
-      if (onPlayAgain) onPlayAgain();
-    };
-    
-    modalMainMenuBtn.onclick = () => {
-      modalOverlay.style.display = 'none';
-      if (onMainMenu) onMainMenu();
-    };
-  }
-
-  function hideModal() {
-    if (modalOverlay) modalOverlay.style.display = 'none';
+    modalPlayAgainBtn.onclick = () => { modalOverlay.style.display = 'none'; onPlayAgain(); };
+    modalMainMenuBtn.onclick = () => { modalOverlay.style.display = 'none'; onMainMenu(); };
   }
 
   function handleGameEnd(result) {
     gameActive = false;
     if (result.winner === 'draw') {
-      showModal(translations.draw, restartCurrentGame, goToMainMenu);
+      showModal('تعادل', restartGame, goToMainMenu);
     } else {
       winningCells = result.cells;
-      const boardEl = getCurrentBoardElement();
-      renderBoard(boardEl, boardState, winningCells);
+      renderBoard(boardState, winningCells);
       setTimeout(() => {
-        showModal(`${translations.winner}: ${result.winner}`, restartCurrentGame, goToMainMenu);
+        showModal(`الفائز: ${result.winner}`, restartGame, goToMainMenu);
       }, 400);
     }
   }
 
-  function getCurrentBoardElement() {
-    if (currentScreen === 'aiGame') return aiBoard;
-    if (currentScreen === 'localGame') return localBoard;
-    if (currentScreen === 'onlineRoom') return onlineBoard;
-    return null;
-  }
-
-  function restartCurrentGame() {
-    if (gameMode === 'ai') startAIGame();
-    else if (gameMode === 'local') startLocalGame();
-    else if (gameMode === 'online' && window.onlineManager) {
-      window.onlineManager.resetOnlineGame();
-    }
-  }
-
-  function goToMainMenu() {
-    if (gameMode === 'online' && window.onlineManager) {
-      window.onlineManager.leaveRoom();
-    }
-    gameMode = null;
-    gameActive = false;
-    aiEnabled = false;
-    showScreen('mainMenu');
-    hideModal();
-  }
-
-  function makeMove(index, boardElement) {
-    if (!gameActive || boardState[index] !== '') return false;
+  function makeMove(index) {
+    if (!gameActive || boardState[index] !== '') return;
     
     boardState[index] = currentPlayer;
-    renderBoard(boardElement, boardState, winningCells);
+    renderBoard(boardState);
     
     const result = checkWinner(boardState);
     if (result) {
       handleGameEnd(result);
-      return true;
+      return;
     }
     
     currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
     
-    if (aiEnabled && gameMode === 'ai' && currentPlayer === 'O' && gameActive) {
+    if (aiEnabled && currentPlayer === 'O' && gameActive) {
       setTimeout(() => {
         if (!gameActive) return;
-        const aiMoveIndex = getAIMove([...boardState], aiLevel);
-        if (aiMoveIndex !== -1 && boardState[aiMoveIndex] === '') {
-          makeMove(aiMoveIndex, boardElement);
-        }
-      }, 250);
+        const aiIndex = getAIMove([...boardState], 'impossible');
+        if (aiIndex !== -1 && boardState[aiIndex] === '') makeMove(aiIndex);
+      }, 200);
     }
-    
-    return true;
   }
 
   function startAIGame() {
     resetGameState();
     gameMode = 'ai';
     aiEnabled = true;
-    aiLevel = document.getElementById('aiLevelSelect')?.value || 'impossible';
-    playerXName = translations.you;
-    playerOName = translations.ai;
-    updatePlayerDisplays();
-    renderBoard(aiBoard, boardState);
-    showScreen('aiGame');
-    
+    playerXNameEl.textContent = 'أنت';
+    playerONameEl.textContent = 'AI';
+    renderBoard(boardState);
+    showScreen('game');
     if (currentPlayer === 'O') {
       setTimeout(() => {
-        if (!gameActive) return;
-        const aiMoveIndex = getAIMove([...boardState], aiLevel);
-        if (aiMoveIndex !== -1 && boardState[aiMoveIndex] === '') {
-          makeMove(aiMoveIndex, aiBoard);
-        }
+        const aiIndex = getAIMove([...boardState], 'impossible');
+        if (aiIndex !== -1) makeMove(aiIndex);
       }, 300);
     }
   }
@@ -296,76 +167,32 @@ document.addEventListener('DOMContentLoaded', () => {
     resetGameState();
     gameMode = 'local';
     aiEnabled = false;
-    playerXName = translations.playerX;
-    playerOName = translations.playerO;
-    updatePlayerDisplays();
-    renderBoard(localBoard, boardState);
-    showScreen('localGame');
+    playerXNameEl.textContent = 'اللاعب X';
+    playerONameEl.textContent = 'اللاعب O';
+    renderBoard(boardState);
+    showScreen('game');
+  }
+
+  function restartGame() {
+    if (gameMode === 'ai') startAIGame();
+    else startLocalGame();
+  }
+
+  function goToMainMenu() {
+    gameActive = false;
+    gameMode = null;
+    showScreen('mainMenu');
   }
 
   document.getElementById('playAIBtn').addEventListener('click', startAIGame);
   document.getElementById('playLocalBtn').addEventListener('click', startLocalGame);
-  document.getElementById('playOnlineBtn').addEventListener('click', () => {
-    if (window.onlineManager) window.onlineManager.showLobby();
-    showScreen('onlineLobby');
-  });
-  document.getElementById('settingsBtn').addEventListener('click', () => showScreen('settings'));
+  document.getElementById('backBtn').addEventListener('click', goToMainMenu);
 
-  document.getElementById('aiBackBtn').addEventListener('click', goToMainMenu);
-  document.getElementById('localBackBtn').addEventListener('click', goToMainMenu);
-  document.getElementById('lobbyBackBtn').addEventListener('click', goToMainMenu);
-  document.getElementById('settingsBackBtn').addEventListener('click', goToMainMenu);
-
-  aiBoard.addEventListener('click', (e) => {
+  gameBoard.addEventListener('click', (e) => {
     const cell = e.target.closest('.cell');
-    if (!cell || !gameActive || gameMode !== 'ai') return;
-    if (currentPlayer !== 'X') return;
+    if (!cell || !gameActive) return;
+    if (aiEnabled && currentPlayer === 'O') return;
     const index = parseInt(cell.dataset.index);
-    makeMove(index, aiBoard);
+    makeMove(index);
   });
-
-  localBoard.addEventListener('click', (e) => {
-    const cell = e.target.closest('.cell');
-    if (!cell || !gameActive || gameMode !== 'local') return;
-    const index = parseInt(cell.dataset.index);
-    makeMove(index, localBoard);
-  });
-
-  onlineBoard.addEventListener('click', (e) => {
-    if (gameMode !== 'online' || !window.onlineManager) return;
-    const cell = e.target.closest('.cell');
-    if (!cell) return;
-    const index = parseInt(cell.dataset.index);
-    window.onlineManager.handleCellClick(index);
-  });
-
-  window.app = {
-    translations,
-    showScreen,
-    showModal,
-    hideModal,
-    goToMainMenu,
-    updatePlayerDisplays,
-    renderBoard,
-    setGameMode: (mode) => { gameMode = mode; },
-    getGameMode: () => gameMode,
-    setBoardState: (state) => { boardState = [...state]; },
-    getBoardState: () => [...boardState],
-    setCurrentPlayer: (player) => { currentPlayer = player; },
-    getCurrentPlayer: () => currentPlayer,
-    setGameActive: (active) => { gameActive = active; },
-    isGameActive: () => gameActive,
-    setPlayerNames: (x, o) => {
-      playerXName = x;
-      playerOName = o;
-      updatePlayerDisplays();
-    },
-    getCurrentScreen: () => currentScreen,
-    handleGameEnd,
-    getOnlineBoard: () => onlineBoard,
-    checkWinner,
-    getWinLineStyle,
-    setWinningCells: (cells) => { winningCells = [...cells]; },
-    getWinningCells: () => [...winningCells]
-  };
 });
