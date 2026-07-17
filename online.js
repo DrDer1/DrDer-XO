@@ -6,6 +6,7 @@ class OnlineGameManager {
     this.playerName = '';
     this.currentRoomId = null;
     this.isOwner = false;
+    this.myRole = 'spectator';
     this.unsubscribe = null;
     this.initFirebase();
   }
@@ -79,6 +80,7 @@ class OnlineGameManager {
     const roomCode = Math.random().toString(36).substr(2, 5).toUpperCase();
     this.currentRoomId = roomCode;
     this.isOwner = true;
+    this.myRole = 'spectator';
 
     const roomData = {
       ownerId: this.playerId,
@@ -100,6 +102,8 @@ class OnlineGameManager {
 
     this.roomRef = this.db.ref(`rooms/${roomCode}`);
     this.roomRef.set(roomData).then(() => {
+      this.roomRef.child(`spectators/${this.playerId}`).onDisconnect().remove();
+      this.roomRef.child('lastActivity').onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
       this.attachListeners();
       window.app.showScreen('onlineRoom');
       window.app.setGameMode('online');
@@ -132,6 +136,7 @@ class OnlineGameManager {
 
       const room = snapshot.val();
       this.isOwner = (room.ownerId === this.playerId);
+      this.myRole = 'spectator';
 
       const updates = {};
       updates[`spectators/${this.playerId}`] = { id: this.playerId, name: this.playerName };
@@ -139,6 +144,8 @@ class OnlineGameManager {
       updates[`lastActivity`] = firebase.database.ServerValue.TIMESTAMP;
 
       this.roomRef.update(updates).then(() => {
+        this.roomRef.child(`spectators/${this.playerId}`).onDisconnect().remove();
+        this.roomRef.child('lastActivity').onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
         this.attachListeners();
         window.app.showScreen('onlineRoom');
         window.app.setGameMode('online');
@@ -163,6 +170,7 @@ class OnlineGameManager {
       }
       this.syncUIFromFirebase(data);
       this.checkDisconnection(data);
+      this.cleanupIfEmpty(data);
     });
   }
 
@@ -189,6 +197,14 @@ class OnlineGameManager {
     window.app.renderBoard(onlineBoard, board, winners);
 
     window.app.setCurrentPlayer(data.turn || 'X');
+
+    if (xPlayer?.id === this.playerId) {
+      this.myRole = 'X';
+    } else if (oPlayer?.id === this.playerId) {
+      this.myRole = 'O';
+    } else {
+      this.myRole = 'spectator';
+    }
 
     const hasBothPlayers = xPlayer?.id && oPlayer?.id;
     const isPlaying = data.status === 'playing';
@@ -230,23 +246,19 @@ class OnlineGameManager {
   handleCellClick(index) {
     if (!this.roomRef) return;
 
-    const cellRef = this.roomRef;
-
-    cellRef.transaction((currentData) => {
-      if (!currentData) {
-        return;
-      }
-
-      const xPlayer = currentData.players?.X;
-      const oPlayer = currentData.players?.O;
+    this.roomRef.transaction((currentData) => {
+      if (!currentData) return;
 
       if (currentData.status !== 'playing') return;
       if (currentData.winner) return;
+
+      const xPlayer = currentData.players?.X;
+      const oPlayer = currentData.players?.O;
       if (!xPlayer?.id || !oPlayer?.id) return;
 
       let myRole = null;
       if (xPlayer.id === this.playerId) myRole = 'X';
-      if (oPlayer.id === this.playerId) myRole = 'O';
+      else if (oPlayer.id === this.playerId) myRole = 'O';
       if (!myRole) return;
 
       if (currentData.turn !== myRole) return;
@@ -255,8 +267,8 @@ class OnlineGameManager {
       if (board[index] !== '') return;
 
       board[index] = myRole;
-
       const nextTurn = myRole === 'X' ? 'O' : 'X';
+
       currentData.board = board;
       currentData.turn = nextTurn;
       currentData.lastActivity = firebase.database.ServerValue.TIMESTAMP;
@@ -300,9 +312,14 @@ class OnlineGameManager {
         currentData.players.O = { id: '', name: '' };
       }
 
-      const targetData = currentData.spectators?.[targetPlayerId] ||
-        (currentData.players?.X?.id === targetPlayerId ? currentData.players.X : null) ||
-        (currentData.players?.O?.id === targetPlayerId ? currentData.players.O : null);
+      let targetData = null;
+      if (currentData.spectators && currentData.spectators[targetPlayerId]) {
+        targetData = currentData.spectators[targetPlayerId];
+      } else if (currentData.players?.X?.id === targetPlayerId) {
+        targetData = currentData.players.X;
+      } else if (currentData.players?.O?.id === targetPlayerId) {
+        targetData = currentData.players.O;
+      }
 
       if (role === 'X' || role === 'O') {
         if (targetData) {
@@ -333,7 +350,6 @@ class OnlineGameManager {
       }
 
       currentData.lastActivity = firebase.database.ServerValue.TIMESTAMP;
-
       return currentData;
     }).catch(error => {
       console.error('Transaction failed:', error);
@@ -363,6 +379,7 @@ class OnlineGameManager {
           currentData.players.O = { id: '', name: '' };
         }
         currentData.lastActivity = firebase.database.ServerValue.TIMESTAMP;
+        currentData.viewersCount = Math.max(0, (currentData.viewersCount || 1) - 1);
 
         return currentData;
       }).catch(error => {
@@ -389,6 +406,7 @@ class OnlineGameManager {
     this.roomRef = null;
     this.currentRoomId = null;
     this.isOwner = false;
+    this.myRole = 'spectator';
   }
 
   handleRoomClosed() {
@@ -397,6 +415,24 @@ class OnlineGameManager {
     window.app.setGameActive(false);
     alert('تم إغلاق الغرفة');
     window.app.goToMainMenu();
+  }
+
+  cleanupIfEmpty(data) {
+    if (!this.roomRef) return;
+    const totalPlayers = (data.spectators ? Object.keys(data.spectators).filter(k => data.spectators[k] !== null).length : 0);
+    const hasX = data.players?.X?.id ? 1 : 0;
+    const hasO = data.players?.O?.id ? 1 : 0;
+    const totalActive = totalPlayers + hasX + hasO;
+
+    if (totalActive === 0) {
+      this.roomRef.remove().catch(() => {});
+    } else if (data.lastActivity) {
+      const now = Date.now();
+      const lastActivity = data.lastActivity;
+      if (now - lastActivity > 600000) {
+        this.roomRef.remove().catch(() => {});
+      }
+    }
   }
 
   checkDisconnection(data) {
@@ -410,8 +446,7 @@ class OnlineGameManager {
         const otherExists = (data.players.X.id === otherId) || (data.players.O.id === otherId);
         const otherIsSpectator = data.spectators && data.spectators[otherId];
         if (!otherExists && !otherIsSpectator) {
-          const myRole = (xId === this.playerId) ? 'X' : (oId === this.playerId ? 'O' : 'spectator');
-          if (myRole !== 'spectator') {
+          if (this.myRole === 'X' || this.myRole === 'O') {
             const disconnectionMessage = document.getElementById('disconnectionMessage');
             if (disconnectionMessage) {
               disconnectionMessage.style.display = 'flex';
