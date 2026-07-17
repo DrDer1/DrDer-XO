@@ -7,7 +7,7 @@
   <meta name="description" content="DrDer X O - لعبة احترافية متعددة الأنماط">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="DrDer XO">
+  <meta name="apple-mobile-web-app-title" content="DrDer X O">
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./icons/192.png" sizes="192x192" type="image/png">
   <link rel="icon" href="./icons/512.png" sizes="512x512" type="image/png">
@@ -62,6 +62,46 @@
       flex-direction: column;
       align-items: center;
       gap: 24px;
+    }
+
+    .app-header {
+      width: 100%;
+      text-align: center;
+      padding: 8px 0;
+      position: relative;
+    }
+
+    .app-header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: 4px;
+      background: linear-gradient(135deg, var(--accent-x), var(--accent-o));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 0;
+    }
+
+    .install-btn {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--accent-success);
+      color: #0f172a;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--font-family);
+      display: none;
+      white-space: nowrap;
+    }
+
+    .install-btn:hover {
+      background: #6ee7a8;
     }
 
     .screen {
@@ -384,8 +424,8 @@
       .game-board {
         width: 90%;
       }
-      .game-title {
-        font-size: 2.5rem;
+      .app-header h1 {
+        font-size: 2rem;
       }
       .btn {
         padding: 12px 20px;
@@ -402,8 +442,12 @@
 </head>
 <body>
   <div id="app">
+    <div class="app-header">
+      <h1>DrDer X_O</h1>
+      <button class="install-btn" id="installBtn">تثبيت</button>
+    </div>
+
     <div id="mainMenuScreen" class="screen active">
-      <h1 class="game-title">DrDer X O</h1>
       <div class="menu-buttons">
         <button class="btn" id="playAIBtn">لعب ضد الذكاء الاصطناعي</button>
         <button class="btn" id="playLocalBtn">لاعبان على نفس الجهاز</button>
@@ -487,6 +531,9 @@
   </div>
 
   <script>
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
@@ -497,6 +544,39 @@
             console.log('Service Worker registration failed:', error);
           });
       });
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (installBtn) {
+        installBtn.style.display = 'block';
+      }
+    });
+
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User response to the install prompt: ${outcome}`);
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+      });
+    }
+
+    window.addEventListener('appinstalled', () => {
+      console.log('PWA was installed');
+      if (installBtn) {
+        installBtn.style.display = 'none';
+      }
+      deferredPrompt = null;
+    });
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      if (installBtn) {
+        installBtn.style.display = 'none';
+      }
     }
   </script>
   <script src="./ai.js"></script>
