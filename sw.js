@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drder-xo-v3';
+const CACHE_NAME = 'drder-xo-v4';
 const urlsToCache = [
   './',
   './index.html',
@@ -14,7 +14,9 @@ const urlsToCache = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(urlsToCache);
+      return cache.addAll(urlsToCache).catch(error => {
+        console.error('Cache addAll failed:', error);
+      });
     })
   );
   self.skipWaiting();
@@ -23,7 +25,10 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((response) => {
-      return response || fetch(event.request).then((fetchResponse) => {
+      if (response) {
+        return response;
+      }
+      return fetch(event.request).then((fetchResponse) => {
         if (!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type !== 'basic') {
           return fetchResponse;
         }
