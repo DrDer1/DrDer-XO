@@ -96,7 +96,7 @@ class OnlineGameManager {
       },
       board: ['', '', '', '', '', '', '', '', ''],
       turn: 'X',
-      winner: null,
+      winner: '',
       viewersCount: 1
     };
 
@@ -106,7 +106,8 @@ class OnlineGameManager {
       window.app.showScreen('onlineRoom');
       window.app.setGameMode('online');
       document.getElementById('roomCodeDisplay').textContent = `كود: ${roomCode}`;
-      this.updateUI(roomData);
+    }).catch(error => {
+      console.error('Error creating room:', error);
     });
   }
 
@@ -145,6 +146,8 @@ class OnlineGameManager {
         window.app.showScreen('onlineRoom');
         window.app.setGameMode('online');
         document.getElementById('roomCodeDisplay').textContent = `كود: ${roomCode}`;
+      }).catch(error => {
+        console.error('Error joining room:', error);
       });
     });
   }
@@ -161,7 +164,6 @@ class OnlineGameManager {
         this.handleRoomClosed();
         return;
       }
-
       this.updateUI(data);
       this.checkDisconnection(data);
     });
@@ -174,40 +176,42 @@ class OnlineGameManager {
 
     const xPlayer = data.players?.X;
     const oPlayer = data.players?.O;
-    const xName = xPlayer?.name || 'X';
-    const oName = oPlayer?.name || 'O';
+    const xName = xPlayer?.id ? xPlayer.name : 'X';
+    const oName = oPlayer?.id ? oPlayer.name : 'O';
     
     window.app.setPlayerNames(xName, oName);
 
     const board = data.board || ['', '', '', '', '', '', '', '', ''];
     window.app.setBoardState([...board]);
 
-    const winners = data.winner && data.winner !== 'draw' ? window.app.checkWinner(board)?.cells || [] : [];
+    const winner = data.winner || '';
+    const winners = (winner && winner !== 'draw') ? window.app.checkWinner(board)?.cells || [] : [];
     window.app.setWinningCells(winners);
     
     const onlineBoard = window.app.getOnlineBoard();
     window.app.renderBoard(onlineBoard, board, winners);
 
-    window.app.setCurrentPlayer(data.turn || 'X');
+    const turn = data.turn || 'X';
+    window.app.setCurrentPlayer(turn);
     
     this.myRole = 'spectator';
-    if (data.players?.X?.id === this.playerId) this.myRole = 'X';
-    if (data.players?.O?.id === this.playerId) this.myRole = 'O';
+    if (xPlayer?.id === this.playerId) this.myRole = 'X';
+    if (oPlayer?.id === this.playerId) this.myRole = 'O';
     if (data.spectators && data.spectators[this.playerId]) this.myRole = 'spectator';
 
-    const hasBothPlayers = data.players?.X?.id && data.players?.O?.id;
+    const hasBothPlayers = xPlayer?.id && oPlayer?.id;
     const isPlaying = data.status === 'playing';
-    const hasWinner = data.winner !== null && data.winner !== undefined && data.winner !== '';
+    const hasWinner = winner !== '' && winner !== null && winner !== undefined;
     const isActive = hasBothPlayers && isPlaying && !hasWinner;
     
     window.app.setGameActive(isActive);
 
-    if (data.winner) {
+    if (hasWinner) {
       window.app.setGameActive(false);
-      if (data.winner === 'draw') {
-        window.app.showModal('تعادل', () => this.resetOnlineGame(), () => window.app.goToMainMenu());
+      if (winner === 'draw') {
+        window.app.showModal('تعادل', () => this.resetOnlineGame(), () => this.leaveRoomAndGoHome());
       } else {
-        window.app.showModal(`الفائز: ${data.winner}`, () => this.resetOnlineGame(), () => window.app.goToMainMenu());
+        window.app.showModal(`الفائز: ${winner}`, () => this.resetOnlineGame(), () => this.leaveRoomAndGoHome());
       }
     }
 
@@ -215,9 +219,13 @@ class OnlineGameManager {
   }
 
   handleCellClick(index) {
-    if (!window.app.isGameActive()) return false;
+    const isActive = window.app.isGameActive();
+    if (!isActive) return false;
+    
     if (this.myRole !== 'X' && this.myRole !== 'O') return false;
-    if (window.app.getCurrentPlayer() !== this.myRole) return false;
+    
+    const currentTurn = window.app.getCurrentPlayer();
+    if (currentTurn !== this.myRole) return false;
     
     const board = [...window.app.getBoardState()];
     if (board[index] !== '') return false;
@@ -237,7 +245,10 @@ class OnlineGameManager {
       updates.winner = result === 'draw' ? 'draw' : result;
     }
 
-    this.roomRef.update(updates);
+    this.roomRef.update(updates).catch(error => {
+      console.error('Error updating move:', error);
+    });
+    
     return true;
   }
 
@@ -263,9 +274,11 @@ class OnlineGameManager {
     this.roomRef.update({
       board: ['', '', '', '', '', '', '', '', ''],
       turn: firstTurn,
-      winner: null,
+      winner: '',
       status: 'playing',
       lastActivity: firebase.database.ServerValue.TIMESTAMP
+    }).catch(error => {
+      console.error('Error resetting game:', error);
     });
   }
 
@@ -278,54 +291,55 @@ class OnlineGameManager {
       
       const updates = {};
       
-      if (data.players?.X?.id === targetPlayerId) {
+      if (data.players?.X?.id === targetPlayerId && role !== 'X') {
         updates['players/X'] = { id: '', name: '' };
       }
-      if (data.players?.O?.id === targetPlayerId) {
+      if (data.players?.O?.id === targetPlayerId && role !== 'O') {
         updates['players/O'] = { id: '', name: '' };
       }
 
+      const targetData = data.spectators?.[targetPlayerId] || 
+                        (data.players?.X?.id === targetPlayerId ? data.players.X : null) ||
+                        (data.players?.O?.id === targetPlayerId ? data.players.O : null);
+
       if (role === 'X' || role === 'O') {
-        const targetData = data.spectators?.[targetPlayerId] || 
-                          (data.players?.X?.id === targetPlayerId ? data.players.X : null) ||
-                          (data.players?.O?.id === targetPlayerId ? data.players.O : null);
         if (targetData) {
           updates[`players/${role}`] = { id: targetPlayerId, name: targetData.name };
           updates[`spectators/${targetPlayerId}`] = null;
         }
-      }
-
-      if (role === 'spectator') {
-        const xData = data.players?.X?.id === targetPlayerId ? data.players.X : null;
-        const oData = data.players?.O?.id === targetPlayerId ? data.players.O : null;
-        const playerData = xData || oData;
-        if (playerData) {
-          updates[`spectators/${targetPlayerId}`] = { id: targetPlayerId, name: playerData.name };
+      } else if (role === 'spectator') {
+        if (targetData) {
+          updates[`spectators/${targetPlayerId}`] = { id: targetPlayerId, name: targetData.name };
         }
       }
 
-      const hasBothPlayers = (role === 'X' || role === 'O') ? 
-        ((role === 'X' && data.players?.O?.id) || (role === 'O' && data.players?.X?.id) || 
-         (updates['players/X'] && updates['players/X'].id && data.players?.O?.id) ||
-         (updates['players/O'] && updates['players/O'].id && data.players?.X?.id) ||
-         (role === 'X' && data.players?.O?.id) || (role === 'O' && data.players?.X?.id)) : false;
-
+      const xPlayer = updates['players/X'] || data.players?.X;
+      const oPlayer = updates['players/O'] || data.players?.O;
+      const xId = xPlayer?.id || '';
+      const oId = oPlayer?.id || '';
+      const hasBothPlayers = xId !== '' && oId !== '';
+      
       if (hasBothPlayers && data.status === 'waiting') {
         const firstTurn = Math.random() < 0.5 ? 'X' : 'O';
         updates.status = 'playing';
         updates.turn = firstTurn;
         updates.board = ['', '', '', '', '', '', '', '', ''];
-        updates.winner = null;
+        updates.winner = '';
       }
 
       updates.lastActivity = firebase.database.ServerValue.TIMESTAMP;
-      this.roomRef.update(updates);
+      
+      this.roomRef.update(updates).catch(error => {
+        console.error('Error setting player role:', error);
+      });
     });
   }
 
   closeRoom() {
     if (this.roomRef && this.isOwner) {
-      this.roomRef.remove();
+      this.roomRef.remove().catch(error => {
+        console.error('Error closing room:', error);
+      });
     }
   }
 
@@ -337,8 +351,23 @@ class OnlineGameManager {
       if (this.myRole === 'O') updates['players/O'] = { id: '', name: '' };
       updates.lastActivity = firebase.database.ServerValue.TIMESTAMP;
       
-      this.roomRef.update(updates);
+      this.roomRef.update(updates).catch(error => {
+        console.error('Error leaving room:', error);
+      });
     }
+    
+    this.cleanup();
+  }
+
+  leaveRoomAndGoHome() {
+    this.leaveRoom();
+    window.app.setGameMode(null);
+    window.app.setGameActive(false);
+    window.app.showScreen('mainMenu');
+    window.app.hideModal();
+  }
+
+  cleanup() {
     if (this.unsubscribe) {
       this.unsubscribe();
       this.unsubscribe = null;
@@ -347,19 +376,10 @@ class OnlineGameManager {
     this.currentRoomId = null;
     this.isOwner = false;
     this.myRole = 'spectator';
-    window.app.setGameMode(null);
-    window.app.setGameActive(false);
   }
 
   handleRoomClosed() {
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
-    }
-    this.roomRef = null;
-    this.currentRoomId = null;
-    this.isOwner = false;
-    this.myRole = 'spectator';
+    this.cleanup();
     window.app.setGameMode(null);
     window.app.setGameActive(false);
     alert('تم إغلاق الغرفة');
@@ -377,7 +397,10 @@ class OnlineGameManager {
         const otherExists = (data.players.X.id === otherId) || (data.players.O.id === otherId);
         const otherIsSpectator = data.spectators && data.spectators[otherId];
         if (!otherExists && !otherIsSpectator && this.myRole !== 'spectator') {
-          document.getElementById('disconnectionMessage').style.display = 'flex';
+          const disconnectionMessage = document.getElementById('disconnectionMessage');
+          if (disconnectionMessage) {
+            disconnectionMessage.style.display = 'flex';
+          }
           window.app.setGameActive(false);
         }
       }
@@ -401,7 +424,7 @@ class OnlineGameManager {
     if (data.players?.O?.id) allPlayers[data.players.O.id] = { ...data.players.O, role: 'O' };
     if (data.spectators) {
       Object.entries(data.spectators).forEach(([id, info]) => {
-        if (!allPlayers[id]) {
+        if (id && info && !allPlayers[id]) {
           allPlayers[id] = { ...info, role: 'spectator' };
         }
       });
@@ -413,7 +436,8 @@ class OnlineGameManager {
       
       const nameSpan = document.createElement('span');
       nameSpan.className = 'admin-player-name';
-      nameSpan.textContent = `${info.name} (${info.role === 'spectator' ? 'مشاهد' : info.role})`;
+      const roleText = info.role === 'spectator' ? 'مشاهد' : info.role;
+      nameSpan.textContent = `${info.name} (${roleText})`;
       
       const actions = document.createElement('div');
       actions.className = 'admin-player-actions';
@@ -475,9 +499,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (leaveRoomBtn) {
     leaveRoomBtn.addEventListener('click', () => {
       if (window.onlineManager) {
-        window.onlineManager.leaveRoom();
+        window.onlineManager.leaveRoomAndGoHome();
       }
-      window.app.goToMainMenu();
     });
   }
 
@@ -488,7 +511,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (disconnectionMessage) {
         disconnectionMessage.style.display = 'none';
       }
-      window.app.goToMainMenu();
+      if (window.onlineManager) {
+        window.onlineManager.leaveRoomAndGoHome();
+      }
     });
   }
 });
