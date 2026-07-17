@@ -339,16 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.onlineManager.handleCellClick(index);
   });
 
-  document.getElementById('leaveRoomBtn').addEventListener('click', () => {
-    if (window.onlineManager) window.onlineManager.leaveRoom();
-    goToMainMenu();
-  });
-
-  document.getElementById('disconnectionBackBtn').addEventListener('click', () => {
-    document.getElementById('disconnectionMessage').style.display = 'none';
-    goToMainMenu();
-  });
-
   window.app = {
     translations,
     showScreen,
