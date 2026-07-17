@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drder-xo-v2';
+const CACHE_NAME = 'drder-xo-v3';
 const urlsToCache = [
   './',
   './index.html',
