@@ -2,7 +2,7 @@
   "name": "DrDer X O",
   "short_name": "DrDer XO",
   "description": "لعبة X O احترافية متعددة الأنماط",
-  "start_url": "./index.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
@@ -11,14 +11,17 @@
     {
       "src": "./icons/192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "./icons/512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "dir": "rtl",
-  "lang": "ar"
+  "lang": "ar",
+  "scope": "./"
 }
