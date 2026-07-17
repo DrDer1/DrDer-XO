@@ -349,8 +349,8 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBoard,
     setGameMode: (mode) => { gameMode = mode; },
     getGameMode: () => gameMode,
-    setBoardState: (state) => { boardState = state; },
-    getBoardState: () => boardState,
+    setBoardState: (state) => { boardState = [...state]; },
+    getBoardState: () => [...boardState],
     setCurrentPlayer: (player) => { currentPlayer = player; },
     getCurrentPlayer: () => currentPlayer,
     setGameActive: (active) => { gameActive = active; },
@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
     getOnlineBoard: () => onlineBoard,
     checkWinner,
     getWinLineStyle,
-    setWinningCells: (cells) => { winningCells = cells; },
-    getWinningCells: () => winningCells
+    setWinningCells: (cells) => { winningCells = [...cells]; },
+    getWinningCells: () => [...winningCells]
   };
 });
