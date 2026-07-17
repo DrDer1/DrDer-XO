@@ -1,8 +1,7 @@
 {
-  "id": "./",
   "name": "DrDer X O",
   "short_name": "DrDer XO",
-  "description": "لعبة X O احترافية متعددة الأنماط",
+  "description": "لعبة X O احترافية",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
