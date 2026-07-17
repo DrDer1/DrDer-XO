@@ -1,4 +1,3 @@
-```javascript
 const CACHE_NAME = 'drder-xo-v2';
 const urlsToCache = [
   './',
