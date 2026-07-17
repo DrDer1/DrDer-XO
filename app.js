@@ -41,6 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const first = cellElements[cells[0]].getBoundingClientRect();
     const last = cellElements[cells[2]].getBoundingClientRect();
     
+    if (!first || !last) return null;
+    
     const x1 = first.left + first.width / 2 - boardRect.left;
     const y1 = first.top + first.height / 2 - boardRect.top;
     const x2 = last.left + last.width / 2 - boardRect.left;
@@ -51,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     return {
       width: `${length}px`,
-      height: '4px',
       top: `${y1}px`,
       left: `${x1}px`,
       transform: `rotate(${angle}deg)`,
@@ -77,13 +78,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (winners.length === 3) {
       requestAnimationFrame(() => {
-        const style = getWinLineStyle(winners);
-        if (style) {
-          const line = document.createElement('div');
-          line.className = 'win-line';
-          Object.assign(line.style, style);
-          gameBoard.appendChild(line);
-        }
+        requestAnimationFrame(() => {
+          const style = getWinLineStyle(winners);
+          if (style) {
+            const line = document.createElement('div');
+            line.className = 'win-line';
+            Object.assign(line.style, style);
+            gameBoard.appendChild(line);
+          }
+        });
       });
     }
   }
@@ -105,10 +108,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showModal(title, onPlayAgain, onMainMenu) {
+    if (!modalTitle || !modalOverlay) return;
     modalTitle.textContent = title;
     modalOverlay.style.display = 'flex';
-    modalPlayAgainBtn.onclick = () => { modalOverlay.style.display = 'none'; onPlayAgain(); };
-    modalMainMenuBtn.onclick = () => { modalOverlay.style.display = 'none'; onMainMenu(); };
+    modalPlayAgainBtn.onclick = () => { modalOverlay.style.display = 'none'; if (onPlayAgain) onPlayAgain(); };
+    modalMainMenuBtn.onclick = () => { modalOverlay.style.display = 'none'; if (onMainMenu) onMainMenu(); };
   }
 
   function handleGameEnd(result) {
@@ -120,12 +124,12 @@ document.addEventListener('DOMContentLoaded', () => {
       renderBoard(boardState, winningCells);
       setTimeout(() => {
         showModal(`الفائز: ${result.winner}`, restartGame, goToMainMenu);
-      }, 400);
+      }, 500);
     }
   }
 
   function makeMove(index) {
-    if (!gameActive || boardState[index] !== '') return;
+    if (!gameActive || index < 0 || index > 8 || boardState[index] !== '') return;
     
     boardState[index] = currentPlayer;
     renderBoard(boardState);
@@ -142,8 +146,10 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         if (!gameActive) return;
         const aiIndex = getAIMove([...boardState], 'impossible');
-        if (aiIndex !== -1 && boardState[aiIndex] === '') makeMove(aiIndex);
-      }, 200);
+        if (aiIndex !== -1 && aiIndex >= 0 && aiIndex <= 8 && boardState[aiIndex] === '') {
+          makeMove(aiIndex);
+        }
+      }, 250);
     }
   }
 
@@ -157,8 +163,11 @@ document.addEventListener('DOMContentLoaded', () => {
     showScreen('game');
     if (currentPlayer === 'O') {
       setTimeout(() => {
+        if (!gameActive) return;
         const aiIndex = getAIMove([...boardState], 'impossible');
-        if (aiIndex !== -1) makeMove(aiIndex);
+        if (aiIndex !== -1 && aiIndex >= 0 && aiIndex <= 8) {
+          makeMove(aiIndex);
+        }
       }, 300);
     }
   }
@@ -193,6 +202,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!cell || !gameActive) return;
     if (aiEnabled && currentPlayer === 'O') return;
     const index = parseInt(cell.dataset.index);
+    if (isNaN(index)) return;
+    makeMove(index);
+  });
+
+  gameBoard.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    const cell = e.target.closest('.cell');
+    if (!cell || !gameActive) return;
+    if (aiEnabled && currentPlayer === 'O') return;
+    const index = parseInt(cell.dataset.index);
+    if (isNaN(index)) return;
     makeMove(index);
   });
 });
