@@ -6,7 +6,6 @@ class OnlineGameManager {
     this.playerName = '';
     this.currentRoomId = null;
     this.isOwner = false;
-    this.myRole = 'spectator';
     this.unsubscribe = null;
     this.initFirebase();
   }
@@ -57,7 +56,7 @@ class OnlineGameManager {
     document.getElementById('playerNameInput').value = this.playerName || '';
     document.getElementById('roomCodeInput').style.display = 'none';
     document.getElementById('roomCodeInput').value = '';
-    
+
     document.getElementById('createRoomBtn').onclick = () => this.createRoom();
     document.getElementById('joinRoomBtn').onclick = () => {
       const roomInput = document.getElementById('roomCodeInput');
@@ -80,7 +79,6 @@ class OnlineGameManager {
     const roomCode = Math.random().toString(36).substr(2, 5).toUpperCase();
     this.currentRoomId = roomCode;
     this.isOwner = true;
-    this.myRole = 'spectator';
 
     const roomData = {
       ownerId: this.playerId,
@@ -131,10 +129,9 @@ class OnlineGameManager {
         this.roomRef = null;
         return;
       }
-      
+
       const room = snapshot.val();
       this.isOwner = (room.ownerId === this.playerId);
-      this.myRole = 'spectator';
 
       const updates = {};
       updates[`spectators/${this.playerId}`] = { id: this.playerId, name: this.playerName };
@@ -164,12 +161,12 @@ class OnlineGameManager {
         this.handleRoomClosed();
         return;
       }
-      this.updateUI(data);
+      this.syncUIFromFirebase(data);
       this.checkDisconnection(data);
     });
   }
 
-  updateUI(data) {
+  syncUIFromFirebase(data) {
     if (!data) return;
 
     document.getElementById('viewerCountDisplay').textContent = `👁 ${data.viewersCount || 0}`;
@@ -178,32 +175,26 @@ class OnlineGameManager {
     const oPlayer = data.players?.O;
     const xName = xPlayer?.id ? xPlayer.name : 'X';
     const oName = oPlayer?.id ? oPlayer.name : 'O';
-    
+
     window.app.setPlayerNames(xName, oName);
 
     const board = data.board || ['', '', '', '', '', '', '', '', ''];
     window.app.setBoardState([...board]);
 
     const winner = data.winner || '';
-    const winners = (winner && winner !== 'draw') ? window.app.checkWinner(board)?.cells || [] : [];
+    const winners = (winner && winner !== 'draw') ? this.checkWinnerFromBoard(board)?.cells || [] : [];
     window.app.setWinningCells(winners);
-    
+
     const onlineBoard = window.app.getOnlineBoard();
     window.app.renderBoard(onlineBoard, board, winners);
 
-    const turn = data.turn || 'X';
-    window.app.setCurrentPlayer(turn);
-    
-    this.myRole = 'spectator';
-    if (xPlayer?.id === this.playerId) this.myRole = 'X';
-    if (oPlayer?.id === this.playerId) this.myRole = 'O';
-    if (data.spectators && data.spectators[this.playerId]) this.myRole = 'spectator';
+    window.app.setCurrentPlayer(data.turn || 'X');
 
     const hasBothPlayers = xPlayer?.id && oPlayer?.id;
     const isPlaying = data.status === 'playing';
     const hasWinner = winner !== '' && winner !== null && winner !== undefined;
     const isActive = hasBothPlayers && isPlaying && !hasWinner;
-    
+
     window.app.setGameActive(isActive);
 
     if (hasWinner) {
@@ -218,41 +209,7 @@ class OnlineGameManager {
     this.renderAdminPanel(data);
   }
 
-  handleCellClick(index) {
-    const isActive = window.app.isGameActive();
-    if (!isActive) return false;
-    
-    if (this.myRole !== 'X' && this.myRole !== 'O') return false;
-    
-    const currentTurn = window.app.getCurrentPlayer();
-    if (currentTurn !== this.myRole) return false;
-    
-    const board = [...window.app.getBoardState()];
-    if (board[index] !== '') return false;
-
-    board[index] = this.myRole;
-    const nextTurn = this.myRole === 'X' ? 'O' : 'X';
-    
-    const result = this.checkOnlineWinner(board);
-    const updates = {
-      board: board,
-      turn: nextTurn,
-      lastActivity: firebase.database.ServerValue.TIMESTAMP
-    };
-
-    if (result) {
-      updates.status = 'finished';
-      updates.winner = result === 'draw' ? 'draw' : result;
-    }
-
-    this.roomRef.update(updates).catch(error => {
-      console.error('Error updating move:', error);
-    });
-    
-    return true;
-  }
-
-  checkOnlineWinner(board) {
+  checkWinnerFromBoard(board) {
     const lines = [
       [0, 1, 2], [3, 4, 5], [6, 7, 8],
       [0, 3, 6], [1, 4, 7], [2, 5, 8],
@@ -261,11 +218,59 @@ class OnlineGameManager {
     for (const line of lines) {
       const [a, b, c] = line;
       if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-        return board[a];
+        return { winner: board[a], cells: line };
       }
     }
-    if (board.every(cell => cell !== '')) return 'draw';
+    if (board.every(cell => cell !== '')) {
+      return { winner: 'draw', cells: [] };
+    }
     return null;
+  }
+
+  handleCellClick(index) {
+    if (!this.roomRef) return;
+
+    const cellRef = this.roomRef;
+
+    cellRef.transaction((currentData) => {
+      if (!currentData) {
+        return;
+      }
+
+      const xPlayer = currentData.players?.X;
+      const oPlayer = currentData.players?.O;
+
+      if (currentData.status !== 'playing') return;
+      if (currentData.winner) return;
+      if (!xPlayer?.id || !oPlayer?.id) return;
+
+      let myRole = null;
+      if (xPlayer.id === this.playerId) myRole = 'X';
+      if (oPlayer.id === this.playerId) myRole = 'O';
+      if (!myRole) return;
+
+      if (currentData.turn !== myRole) return;
+
+      const board = [...(currentData.board || ['', '', '', '', '', '', '', '', ''])];
+      if (board[index] !== '') return;
+
+      board[index] = myRole;
+
+      const nextTurn = myRole === 'X' ? 'O' : 'X';
+      currentData.board = board;
+      currentData.turn = nextTurn;
+      currentData.lastActivity = firebase.database.ServerValue.TIMESTAMP;
+
+      const result = this.checkWinnerFromBoard(board);
+      if (result) {
+        currentData.status = 'finished';
+        currentData.winner = result.winner;
+      }
+
+      return currentData;
+    }).catch(error => {
+      console.error('Transaction failed:', error);
+    });
   }
 
   resetOnlineGame() {
@@ -285,53 +290,53 @@ class OnlineGameManager {
   setPlayerRole(targetPlayerId, role) {
     if (!this.isOwner || !this.roomRef) return;
 
-    this.roomRef.once('value', (snapshot) => {
-      const data = snapshot.val();
-      if (!data) return;
-      
-      const updates = {};
-      
-      if (data.players?.X?.id === targetPlayerId && role !== 'X') {
-        updates['players/X'] = { id: '', name: '' };
+    this.roomRef.transaction((currentData) => {
+      if (!currentData) return;
+
+      if (currentData.players?.X?.id === targetPlayerId && role !== 'X') {
+        currentData.players.X = { id: '', name: '' };
       }
-      if (data.players?.O?.id === targetPlayerId && role !== 'O') {
-        updates['players/O'] = { id: '', name: '' };
+      if (currentData.players?.O?.id === targetPlayerId && role !== 'O') {
+        currentData.players.O = { id: '', name: '' };
       }
 
-      const targetData = data.spectators?.[targetPlayerId] || 
-                        (data.players?.X?.id === targetPlayerId ? data.players.X : null) ||
-                        (data.players?.O?.id === targetPlayerId ? data.players.O : null);
+      const targetData = currentData.spectators?.[targetPlayerId] ||
+        (currentData.players?.X?.id === targetPlayerId ? currentData.players.X : null) ||
+        (currentData.players?.O?.id === targetPlayerId ? currentData.players.O : null);
 
       if (role === 'X' || role === 'O') {
         if (targetData) {
-          updates[`players/${role}`] = { id: targetPlayerId, name: targetData.name };
-          updates[`spectators/${targetPlayerId}`] = null;
+          currentData.players[role] = { id: targetPlayerId, name: targetData.name };
+          if (currentData.spectators && currentData.spectators[targetPlayerId]) {
+            delete currentData.spectators[targetPlayerId];
+          }
         }
       } else if (role === 'spectator') {
         if (targetData) {
-          updates[`spectators/${targetPlayerId}`] = { id: targetPlayerId, name: targetData.name };
+          if (!currentData.spectators) {
+            currentData.spectators = {};
+          }
+          currentData.spectators[targetPlayerId] = { id: targetPlayerId, name: targetData.name };
         }
       }
 
-      const xPlayer = updates['players/X'] || data.players?.X;
-      const oPlayer = updates['players/O'] || data.players?.O;
-      const xId = xPlayer?.id || '';
-      const oId = oPlayer?.id || '';
+      const xId = currentData.players?.X?.id || '';
+      const oId = currentData.players?.O?.id || '';
       const hasBothPlayers = xId !== '' && oId !== '';
-      
-      if (hasBothPlayers && data.status === 'waiting') {
+
+      if (hasBothPlayers && currentData.status === 'waiting') {
         const firstTurn = Math.random() < 0.5 ? 'X' : 'O';
-        updates.status = 'playing';
-        updates.turn = firstTurn;
-        updates.board = ['', '', '', '', '', '', '', '', ''];
-        updates.winner = '';
+        currentData.status = 'playing';
+        currentData.turn = firstTurn;
+        currentData.board = ['', '', '', '', '', '', '', '', ''];
+        currentData.winner = '';
       }
 
-      updates.lastActivity = firebase.database.ServerValue.TIMESTAMP;
-      
-      this.roomRef.update(updates).catch(error => {
-        console.error('Error setting player role:', error);
-      });
+      currentData.lastActivity = firebase.database.ServerValue.TIMESTAMP;
+
+      return currentData;
+    }).catch(error => {
+      console.error('Transaction failed:', error);
     });
   }
 
@@ -345,17 +350,26 @@ class OnlineGameManager {
 
   leaveRoom() {
     if (this.roomRef && this.playerId) {
-      const updates = {};
-      updates[`spectators/${this.playerId}`] = null;
-      if (this.myRole === 'X') updates['players/X'] = { id: '', name: '' };
-      if (this.myRole === 'O') updates['players/O'] = { id: '', name: '' };
-      updates.lastActivity = firebase.database.ServerValue.TIMESTAMP;
-      
-      this.roomRef.update(updates).catch(error => {
-        console.error('Error leaving room:', error);
+      this.roomRef.transaction((currentData) => {
+        if (!currentData) return;
+
+        if (currentData.spectators && currentData.spectators[this.playerId]) {
+          delete currentData.spectators[this.playerId];
+        }
+        if (currentData.players?.X?.id === this.playerId) {
+          currentData.players.X = { id: '', name: '' };
+        }
+        if (currentData.players?.O?.id === this.playerId) {
+          currentData.players.O = { id: '', name: '' };
+        }
+        currentData.lastActivity = firebase.database.ServerValue.TIMESTAMP;
+
+        return currentData;
+      }).catch(error => {
+        console.error('Transaction failed:', error);
       });
     }
-    
+
     this.cleanup();
   }
 
@@ -375,7 +389,6 @@ class OnlineGameManager {
     this.roomRef = null;
     this.currentRoomId = null;
     this.isOwner = false;
-    this.myRole = 'spectator';
   }
 
   handleRoomClosed() {
@@ -396,12 +409,15 @@ class OnlineGameManager {
       if (otherId) {
         const otherExists = (data.players.X.id === otherId) || (data.players.O.id === otherId);
         const otherIsSpectator = data.spectators && data.spectators[otherId];
-        if (!otherExists && !otherIsSpectator && this.myRole !== 'spectator') {
-          const disconnectionMessage = document.getElementById('disconnectionMessage');
-          if (disconnectionMessage) {
-            disconnectionMessage.style.display = 'flex';
+        if (!otherExists && !otherIsSpectator) {
+          const myRole = (xId === this.playerId) ? 'X' : (oId === this.playerId ? 'O' : 'spectator');
+          if (myRole !== 'spectator') {
+            const disconnectionMessage = document.getElementById('disconnectionMessage');
+            if (disconnectionMessage) {
+              disconnectionMessage.style.display = 'flex';
+            }
+            window.app.setGameActive(false);
           }
-          window.app.setGameActive(false);
         }
       }
     }
@@ -410,7 +426,7 @@ class OnlineGameManager {
   renderAdminPanel(data) {
     const panel = document.getElementById('adminPanel');
     if (!panel) return;
-    
+
     if (!this.isOwner) {
       panel.style.display = 'none';
       return;
@@ -433,12 +449,12 @@ class OnlineGameManager {
     Object.entries(allPlayers).forEach(([id, info]) => {
       const row = document.createElement('div');
       row.className = 'admin-player-row';
-      
+
       const nameSpan = document.createElement('span');
       nameSpan.className = 'admin-player-name';
       const roleText = info.role === 'spectator' ? 'مشاهد' : info.role;
       nameSpan.textContent = `${info.name} (${roleText})`;
-      
+
       const actions = document.createElement('div');
       actions.className = 'admin-player-actions';
 
@@ -449,7 +465,7 @@ class OnlineGameManager {
         setXBtn.onclick = () => this.setPlayerRole(id, 'X');
         actions.appendChild(setXBtn);
       }
-      
+
       if (info.role !== 'O') {
         const setOBtn = document.createElement('button');
         setOBtn.className = 'admin-btn';
@@ -457,7 +473,7 @@ class OnlineGameManager {
         setOBtn.onclick = () => this.setPlayerRole(id, 'O');
         actions.appendChild(setOBtn);
       }
-      
+
       if (info.role !== 'spectator') {
         const setSpecBtn = document.createElement('button');
         setSpecBtn.className = 'admin-btn';
