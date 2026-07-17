@@ -61,11 +61,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const onlineBoard = document.getElementById('onlineGameBoard');
 
   function showScreen(screenId) {
+    if (!screens[screenId]) return;
     Object.values(screens).forEach(s => s.classList.remove('active'));
-    if (screens[screenId]) {
-      screens[screenId].classList.add('active');
-      currentScreen = screenId;
-    }
+    screens[screenId].classList.add('active');
+    currentScreen = screenId;
   }
 
   function resetGameState() {
@@ -125,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showModal(title, onPlayAgain, onMainMenu) {
+    if (!modalOverlay || !modalTitle) return;
     modalTitle.textContent = title;
     modalOverlay.style.display = 'flex';
     
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function hideModal() {
-    modalOverlay.style.display = 'none';
+    if (modalOverlay) modalOverlay.style.display = 'none';
   }
 
   function handleGameEnd(result) {
@@ -241,28 +241,18 @@ document.addEventListener('DOMContentLoaded', () => {
     showScreen('localGame');
   }
 
-  document.querySelectorAll('[data-screen]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const screenId = e.target.dataset.screen;
-      const action = e.target.dataset.action;
-      
-      if (action === 'startAI') startAIGame();
-      else if (action === 'startLocal') startLocalGame();
-      else if (action === 'showOnlineLobby') {
-        if (window.onlineManager) window.onlineManager.showLobby();
-        showScreen('onlineLobby');
-      }
-      else if (action === 'showSettings') showScreen('settings');
-      else if (screenId) {
-        if (gameMode === 'online' && window.onlineManager) {
-          window.onlineManager.leaveRoom();
-        }
-        gameMode = null;
-        gameActive = false;
-        showScreen(screenId);
-      }
-    });
+  document.getElementById('playAIBtn').addEventListener('click', startAIGame);
+  document.getElementById('playLocalBtn').addEventListener('click', startLocalGame);
+  document.getElementById('playOnlineBtn').addEventListener('click', () => {
+    if (window.onlineManager) window.onlineManager.showLobby();
+    showScreen('onlineLobby');
   });
+  document.getElementById('settingsBtn').addEventListener('click', () => showScreen('settings'));
+
+  document.getElementById('aiBackBtn').addEventListener('click', goToMainMenu);
+  document.getElementById('localBackBtn').addEventListener('click', goToMainMenu);
+  document.getElementById('lobbyBackBtn').addEventListener('click', goToMainMenu);
+  document.getElementById('settingsBackBtn').addEventListener('click', goToMainMenu);
 
   aiBoard.addEventListener('click', (e) => {
     const cell = e.target.closest('.cell');
@@ -285,6 +275,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!cell) return;
     const index = parseInt(cell.dataset.index);
     window.onlineManager.handleCellClick(index);
+  });
+
+  document.getElementById('leaveRoomBtn').addEventListener('click', () => {
+    if (window.onlineManager) window.onlineManager.leaveRoom();
+    goToMainMenu();
+  });
+
+  document.getElementById('disconnectionBackBtn').addEventListener('click', () => {
+    document.getElementById('disconnectionMessage').style.display = 'none';
+    goToMainMenu();
   });
 
   window.app = {
