@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
-  <meta name="description" content="DrDer X O - لعبة احترافية متعددة الأنماط">
+  <meta name="description" content="DrDer X O - لعبة احترافية">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="DrDer X O">
@@ -31,8 +31,6 @@
       --accent-x: #38bdf8;
       --accent-o: #f472b6;
       --accent-success: #4ade80;
-      --accent-warning: #fbbf24;
-      --accent-danger: #f87171;
       --border-radius: 16px;
       --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     }
@@ -68,7 +66,6 @@
       width: 100%;
       text-align: center;
       padding: 8px 0;
-      position: relative;
     }
 
     .app-header h1 {
@@ -82,28 +79,6 @@
       margin: 0;
     }
 
-    .install-btn {
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      background: var(--accent-success);
-      color: #0f172a;
-      border: none;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      cursor: pointer;
-      font-family: var(--font-family);
-      display: none;
-      white-space: nowrap;
-    }
-
-    .install-btn:hover {
-      background: #6ee7a8;
-    }
-
     .screen {
       width: 100%;
       display: none;
@@ -114,17 +89,6 @@
 
     .screen.active {
       display: flex;
-    }
-
-    .game-title {
-      font-size: 3rem;
-      font-weight: 700;
-      letter-spacing: 4px;
-      background: linear-gradient(135deg, var(--accent-x), var(--accent-o));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 8px;
     }
 
     .menu-buttons {
@@ -146,7 +110,6 @@
       transition: all 0.2s ease;
       width: 100%;
       text-align: center;
-      backdrop-filter: blur(4px);
       letter-spacing: 0.3px;
       font-family: var(--font-family);
     }
@@ -166,14 +129,6 @@
       color: #0f172a;
       border: none;
       font-weight: 700;
-    }
-
-    .primary-btn:hover {
-      background: #7dd3fc;
-    }
-
-    .back-btn {
-      margin-top: 8px;
     }
 
     .game-header {
@@ -210,6 +165,7 @@
       padding: 8px;
       border-radius: var(--border-radius);
       box-shadow: 0 20px 35px rgba(0, 0, 0, 0.5);
+      position: relative;
     }
 
     .cell {
@@ -223,7 +179,6 @@
       cursor: pointer;
       transition: background 0.15s ease;
       color: var(--text-primary);
-      position: relative;
       aspect-ratio: 1 / 1;
     }
 
@@ -244,142 +199,13 @@
       background: var(--bg-surface);
     }
 
-    .room-info {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      background: var(--bg-secondary);
-      padding: 12px 20px;
-      border-radius: 40px;
-      font-size: 0.95rem;
-    }
-
-    .viewer-badge {
-      background: var(--bg-surface);
-      border-radius: 20px;
-      padding: 4px 14px;
-      font-size: 0.85rem;
-    }
-
-    .lobby-container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      width: 100%;
-    }
-
-    .lobby-buttons {
-      display: flex;
-      gap: 12px;
-    }
-
-    .text-input {
-      background: var(--bg-secondary);
-      border: 1px solid var(--bg-surface);
-      padding: 14px 18px;
-      border-radius: 40px;
-      color: var(--text-primary);
-      font-size: 1rem;
-      outline: none;
-      width: 100%;
-      font-family: var(--font-family);
-      transition: border-color 0.2s;
-    }
-
-    .text-input:focus {
-      border-color: var(--accent-x);
-    }
-
-    select.text-input {
-      appearance: none;
-      cursor: pointer;
-    }
-
-    .admin-panel {
-      background: var(--bg-secondary);
-      border-radius: var(--border-radius);
-      padding: 16px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-height: 250px;
-      overflow-y: auto;
-    }
-
-    .admin-player-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--bg-surface);
-    }
-
-    .admin-player-row:last-child {
-      border-bottom: none;
-    }
-
-    .admin-player-name {
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    .admin-player-actions {
-      display: flex;
-      gap: 6px;
-    }
-
-    .admin-btn {
-      background: var(--bg-surface);
-      border: none;
-      color: var(--text-primary);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      font-family: var(--font-family);
-      transition: background 0.2s;
-    }
-
-    .admin-btn:hover {
-      background: #475569;
-    }
-
-    .admin-btn.danger {
-      background: var(--accent-danger);
-      color: white;
-    }
-
-    .disconnection-message {
-      background: var(--bg-secondary);
-      border: 1px solid var(--accent-warning);
-      border-radius: var(--border-radius);
-      padding: 20px;
-      text-align: center;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .settings-container {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .setting-item {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .setting-item label {
-      color: var(--text-secondary);
-      font-weight: 600;
-      font-size: 0.95rem;
+    .win-line {
+      position: absolute;
+      background-color: rgba(74, 222, 128, 0.9);
+      border-radius: 4px;
+      z-index: 10;
+      pointer-events: none;
+      box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
     }
 
     .modal-overlay {
@@ -444,79 +270,22 @@
   <div id="app">
     <div class="app-header">
       <h1>DrDer X_O</h1>
-      <button class="install-btn" id="installBtn">تثبيت</button>
     </div>
 
     <div id="mainMenuScreen" class="screen active">
       <div class="menu-buttons">
         <button class="btn" id="playAIBtn">لعب ضد الذكاء الاصطناعي</button>
         <button class="btn" id="playLocalBtn">لاعبان على نفس الجهاز</button>
-        <button class="btn" id="playOnlineBtn">اللعب عبر الإنترنت</button>
-        <button class="btn" id="settingsBtn">الإعدادات</button>
       </div>
     </div>
 
-    <div id="aiGameScreen" class="screen">
+    <div id="gameScreen" class="screen">
       <div class="game-header">
-        <div class="player-info player-x" id="aiPlayerXName">X</div>
-        <div class="player-info player-o" id="aiPlayerOName">O</div>
+        <div class="player-info player-x" id="playerXName">X</div>
+        <div class="player-info player-o" id="playerOName">O</div>
       </div>
-      <div class="game-board" id="aiGameBoard"></div>
-      <button class="btn back-btn" id="aiBackBtn">القائمة الرئيسية</button>
-    </div>
-
-    <div id="localGameScreen" class="screen">
-      <div class="game-header">
-        <div class="player-info player-x" id="localPlayerXName">X</div>
-        <div class="player-info player-o" id="localPlayerOName">O</div>
-      </div>
-      <div class="game-board" id="localGameBoard"></div>
-      <button class="btn back-btn" id="localBackBtn">القائمة الرئيسية</button>
-    </div>
-
-    <div id="onlineLobbyScreen" class="screen">
-      <div class="lobby-container">
-        <input type="text" id="playerNameInput" class="text-input" placeholder="أدخل اسمك" maxlength="20" autocomplete="off">
-        <div class="lobby-buttons">
-          <button class="btn" id="createRoomBtn">إنشاء غرفة</button>
-          <button class="btn" id="joinRoomBtn">الانضمام إلى غرفة</button>
-        </div>
-        <input type="text" id="roomCodeInput" class="text-input" placeholder="كود الغرفة" maxlength="10" autocomplete="off" style="display:none;">
-        <button class="btn back-btn" id="lobbyBackBtn">القائمة الرئيسية</button>
-      </div>
-    </div>
-
-    <div id="onlineRoomScreen" class="screen">
-      <div class="room-info">
-        <span id="roomCodeDisplay">كود: ---</span>
-        <span class="viewer-badge" id="viewerCountDisplay">👁 0</span>
-      </div>
-      <div class="game-header">
-        <div class="player-info player-x" id="onlinePlayerXName">X</div>
-        <div class="player-info player-o" id="onlinePlayerOName">O</div>
-      </div>
-      <div class="game-board" id="onlineGameBoard"></div>
-      <div id="adminPanel" class="admin-panel" style="display:none;"></div>
-      <div id="disconnectionMessage" class="disconnection-message" style="display:none;">
-        <p>انقطع اتصال اللاعب الآخر</p>
-        <button class="btn" id="disconnectionBackBtn">العودة للقائمة الرئيسية</button>
-      </div>
-      <button class="btn back-btn" id="leaveRoomBtn">مغادرة الغرفة</button>
-    </div>
-
-    <div id="settingsScreen" class="screen">
-      <div class="settings-container">
-        <div class="setting-item">
-          <label for="aiLevelSelect">مستوى الذكاء الاصطناعي</label>
-          <select id="aiLevelSelect" class="text-input">
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-            <option value="impossible" selected>Impossible</option>
-          </select>
-        </div>
-      </div>
-      <button class="btn back-btn" id="settingsBackBtn">القائمة الرئيسية</button>
+      <div class="game-board" id="gameBoard"></div>
+      <button class="btn" id="backBtn">القائمة الرئيسية</button>
     </div>
   </div>
 
@@ -531,56 +300,13 @@
   </div>
 
   <script>
-    let deferredPrompt;
-    const installBtn = document.getElementById('installBtn');
-
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(registration => {
-            console.log('Service Worker registered with scope:', registration.scope);
-          })
-          .catch(error => {
-            console.log('Service Worker registration failed:', error);
-          });
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
       });
-    }
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      if (installBtn) {
-        installBtn.style.display = 'block';
-      }
-    });
-
-    if (installBtn) {
-      installBtn.addEventListener('click', async () => {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
-        deferredPrompt = null;
-        installBtn.style.display = 'none';
-      });
-    }
-
-    window.addEventListener('appinstalled', () => {
-      console.log('PWA was installed');
-      if (installBtn) {
-        installBtn.style.display = 'none';
-      }
-      deferredPrompt = null;
-    });
-
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      if (installBtn) {
-        installBtn.style.display = 'none';
-      }
     }
   </script>
   <script src="./ai.js"></script>
-  <script src="./online.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>
