@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drder-xo-v4';
+const CACHE_NAME = 'drder-xo-v5';
 const urlsToCache = [
   './',
   './index.html',
@@ -7,8 +7,8 @@ const urlsToCache = [
   './ai.js',
   './online.js',
   './manifest.json',
-  './icons/192.png',
-  './icons/512.png'
+  './192.png',
+  './512.png'
 ];
 
 self.addEventListener('install', (event) => {
