@@ -1,11 +1,10 @@
-const CACHE_NAME = 'drder-xo-v5';
+const CACHE_NAME = 'drder-xo-v6';
 const urlsToCache = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './ai.js',
-  './online.js',
   './manifest.json',
   './192.png',
   './512.png'
@@ -13,11 +12,7 @@ const urlsToCache = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(urlsToCache).catch(error => {
-        console.error('Cache addAll failed:', error);
-      });
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
   );
   self.skipWaiting();
 });
@@ -25,23 +20,16 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((response) => {
-      if (response) {
-        return response;
-      }
-      return fetch(event.request).then((fetchResponse) => {
+      return response || fetch(event.request).then((fetchResponse) => {
         if (!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type !== 'basic') {
           return fetchResponse;
         }
         const responseToCache = fetchResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
         return fetchResponse;
       });
     }).catch(() => {
-      if (event.request.mode === 'navigate') {
-        return caches.match('./index.html');
-      }
+      if (event.request.mode === 'navigate') return caches.match('./index.html');
     })
   );
 });
