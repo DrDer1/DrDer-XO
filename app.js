@@ -74,49 +74,45 @@ document.addEventListener('DOMContentLoaded', () => {
     winningCells = [];
   }
 
-  function getWinLineStyle(winningCellsArray) {
-    if (!winningCellsArray || winningCellsArray.length !== 3) return null;
-    const [a, b, c] = winningCellsArray;
+  function getWinLineStyle(winningCellsArray, boardElement) {
+    if (!winningCellsArray || winningCellsArray.length !== 3 || !boardElement) return null;
     
-    const rowA = Math.floor(a / 3);
-    const colA = a % 3;
-    const rowC = Math.floor(c / 3);
-    const colC = c % 3;
+    const cells = boardElement.querySelectorAll('.cell');
+    if (cells.length !== 9) return null;
     
-    const style = {
+    const firstCell = cells[winningCellsArray[0]];
+    const lastCell = cells[winningCellsArray[2]];
+    
+    if (!firstCell || !lastCell) return null;
+    
+    const boardRect = boardElement.getBoundingClientRect();
+    const firstRect = firstCell.getBoundingClientRect();
+    const lastRect = lastCell.getBoundingClientRect();
+    
+    const startX = firstRect.left + firstRect.width / 2 - boardRect.left;
+    const startY = firstRect.top + firstRect.height / 2 - boardRect.top;
+    const endX = lastRect.left + lastRect.width / 2 - boardRect.left;
+    const endY = lastRect.top + lastRect.height / 2 - boardRect.top;
+    
+    const deltaX = endX - startX;
+    const deltaY = endY - startY;
+    const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+    
+    return {
+      width: `${length}px`,
+      height: '4px',
+      backgroundColor: 'rgba(74, 222, 128, 0.9)',
       position: 'absolute',
-      backgroundColor: 'rgba(74, 222, 128, 0.8)',
+      top: `${startY}px`,
+      left: `${startX}px`,
+      transform: `rotate(${angle}deg)`,
+      transformOrigin: '0 50%',
       borderRadius: '4px',
       zIndex: '10',
       pointerEvents: 'none',
-      transformOrigin: 'center center'
+      boxShadow: '0 0 8px rgba(74, 222, 128, 0.5)'
     };
-    
-    if (rowA === rowC) {
-      style.width = '90%';
-      style.height = '4px';
-      style.top = `${(rowA * 33.333) + 16.666}%`;
-      style.left = '5%';
-    } else if (colA === colC) {
-      style.width = '4px';
-      style.height = '90%';
-      style.left = `${(colA * 33.333) + 16.666}%`;
-      style.top = '5%';
-    } else if (a === 0 && c === 8) {
-      style.width = '4px';
-      style.height = '120%';
-      style.top = '-10%';
-      style.left = '50%';
-      style.transform = 'rotate(45deg)';
-    } else if (a === 2 && c === 6) {
-      style.width = '4px';
-      style.height = '120%';
-      style.top = '-10%';
-      style.left = '50%';
-      style.transform = 'rotate(-45deg)';
-    }
-    
-    return style;
   }
 
   function renderBoard(boardElement, state, winners = []) {
@@ -140,14 +136,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     if (winners && winners.length === 3) {
-      const lineStyle = getWinLineStyle(winners);
-      if (lineStyle) {
-        const line = document.createElement('div');
-        line.className = 'win-line';
-        Object.assign(line.style, lineStyle);
-        boardElement.style.position = 'relative';
-        boardElement.appendChild(line);
-      }
+      requestAnimationFrame(() => {
+        const lineStyle = getWinLineStyle(winners, boardElement);
+        if (lineStyle) {
+          const line = document.createElement('div');
+          line.className = 'win-line';
+          Object.assign(line.style, lineStyle);
+          boardElement.style.position = 'relative';
+          boardElement.appendChild(line);
+        }
+      });
     }
   }
 
@@ -215,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderBoard(boardEl, boardState, winningCells);
       setTimeout(() => {
         showModal(`${translations.winner}: ${result.winner}`, restartCurrentGame, goToMainMenu);
-      }, 300);
+      }, 400);
     }
   }
 
