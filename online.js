@@ -1,4 +1,3 @@
-```javascript
 class OnlineGameManager {
   constructor() {
     this.db = null;
