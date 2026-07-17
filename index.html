@@ -31,7 +31,7 @@
       --accent-x: #38bdf8;
       --accent-o: #f472b6;
       --accent-success: #4ade80;
-      --border-radius: 16px;
+      --border-radius: clamp(12px, 2vw, 16px);
       --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     }
 
@@ -44,7 +44,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 16px;
+      padding: clamp(12px, 3vw, 16px);
       margin: 0;
       direction: rtl;
       -webkit-tap-highlight-color: transparent;
@@ -54,24 +54,24 @@
 
     #app {
       width: 100%;
-      max-width: 480px;
+      max-width: min(480px, 95vw);
       margin: 0 auto;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 24px;
+      gap: clamp(16px, 3vw, 24px);
     }
 
     .app-header {
       width: 100%;
       text-align: center;
-      padding: 8px 0;
+      padding: clamp(4px, 1vw, 8px) 0;
     }
 
     .app-header h1 {
-      font-size: 2.5rem;
+      font-size: clamp(2rem, 6vw, 3rem);
       font-weight: 700;
-      letter-spacing: 4px;
+      letter-spacing: clamp(2px, 0.5vw, 4px);
       background: linear-gradient(135deg, var(--accent-x), var(--accent-o));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -84,7 +84,7 @@
       display: none;
       flex-direction: column;
       align-items: center;
-      gap: 24px;
+      gap: clamp(16px, 3vw, 24px);
     }
 
     .screen.active {
@@ -94,7 +94,7 @@
     .menu-buttons {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: clamp(10px, 2vw, 14px);
       width: 100%;
     }
 
@@ -102,9 +102,9 @@
       background: var(--bg-secondary);
       border: 1px solid rgba(255, 255, 255, 0.05);
       color: var(--text-primary);
-      padding: 14px 24px;
-      border-radius: 40px;
-      font-size: 1.1rem;
+      padding: clamp(12px, 2.5vw, 16px) clamp(20px, 4vw, 28px);
+      border-radius: clamp(32px, 6vw, 40px);
+      font-size: clamp(0.95rem, 2.5vw, 1.15rem);
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
@@ -112,6 +112,7 @@
       text-align: center;
       letter-spacing: 0.3px;
       font-family: var(--font-family);
+      -webkit-tap-highlight-color: transparent;
     }
 
     .btn:hover {
@@ -122,6 +123,7 @@
 
     .btn:active {
       transform: scale(0.98);
+      background: var(--bg-surface);
     }
 
     .primary-btn {
@@ -131,20 +133,35 @@
       font-weight: 700;
     }
 
+    .primary-btn:hover {
+      background: #7dd3fc;
+    }
+
+    .primary-btn:active {
+      background: #38bdf8;
+    }
+
     .game-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       width: 100%;
-      padding: 0 8px;
+      padding: 0 clamp(4px, 1vw, 8px);
+      gap: clamp(8px, 2vw, 12px);
     }
 
     .player-info {
-      font-size: 1.2rem;
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
       font-weight: 700;
-      padding: 8px 16px;
-      border-radius: 20px;
+      padding: clamp(6px, 1.5vw, 10px) clamp(12px, 2.5vw, 18px);
+      border-radius: clamp(16px, 3vw, 20px);
       background: var(--bg-secondary);
+      text-align: center;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .player-x {
@@ -158,11 +175,12 @@
     .game-board {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      width: 80%;
+      gap: clamp(6px, 1.5vw, 10px);
+      width: min(80vw, 80%);
+      max-width: 400px;
       aspect-ratio: 1 / 1;
       background: var(--bg-secondary);
-      padding: 8px;
+      padding: clamp(6px, 1.5vw, 10px);
       border-radius: var(--border-radius);
       box-shadow: 0 20px 35px rgba(0, 0, 0, 0.5);
       position: relative;
@@ -170,16 +188,18 @@
 
     .cell {
       background: var(--bg-primary);
-      border-radius: 12px;
+      border-radius: clamp(8px, 2vw, 12px);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: clamp(2.5rem, 10vw, 4rem);
+      font-size: clamp(2.5rem, 8vw, 5rem);
       font-weight: 700;
       cursor: pointer;
       transition: background 0.15s ease;
       color: var(--text-primary);
       aspect-ratio: 1 / 1;
+      -webkit-tap-highlight-color: transparent;
+      min-width: 0;
     }
 
     .cell.x-move {
@@ -205,7 +225,8 @@
       border-radius: 4px;
       z-index: 10;
       pointer-events: none;
-      box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+      box-shadow: 0 0 12px rgba(74, 222, 128, 0.6);
+      height: clamp(3px, 0.8vw, 5px);
     }
 
     .modal-overlay {
@@ -214,54 +235,63 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(8px);
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 1000;
+      padding: 16px;
     }
 
     .modal-content {
       background: var(--bg-secondary);
-      padding: 32px;
-      border-radius: 28px;
+      padding: clamp(24px, 5vw, 36px);
+      border-radius: clamp(20px, 4vw, 28px);
       text-align: center;
-      width: 90%;
-      max-width: 340px;
+      width: min(90%, 360px);
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: clamp(16px, 3vw, 24px);
       box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
     }
 
     .modal-content h2 {
-      font-size: 2rem;
+      font-size: clamp(1.5rem, 4vw, 2rem);
       font-weight: 700;
     }
 
     .modal-buttons {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-    }
-
-    @media (max-width: 400px) {
-      .game-board {
-        width: 90%;
-      }
-      .app-header h1 {
-        font-size: 2rem;
-      }
-      .btn {
-        padding: 12px 20px;
-        font-size: 1rem;
-      }
+      gap: clamp(8px, 1.5vw, 12px);
     }
 
     @media (min-width: 768px) {
       .game-board {
-        width: 70%;
+        width: min(60vw, 380px);
+      }
+    }
+
+    @media (min-width: 1024px) {
+      #app {
+        max-width: 500px;
+      }
+      .game-board {
+        width: 360px;
+      }
+    }
+
+    @media (max-width: 320px) {
+      .game-board {
+        width: 92%;
+      }
+      .cell {
+        font-size: 2.2rem;
+      }
+      .btn {
+        padding: 10px 16px;
+        font-size: 0.9rem;
       }
     }
   </style>
